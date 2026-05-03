@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Redirecting to Explorer — Logo Lab</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://natemodi.com/logo/explorer/">
+<meta http-equiv="refresh" content="0; url=/logo/explorer/">
+<style>
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #fdfdfc;
+    color: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center;
+    line-height: 1.5;
+  }
+  a {
+    color: #111;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  p { font-size: 14px; max-width: 320px; padding: 24px; }
+</style>
+</head>
+<body>
+  <p>The Mosaic moved — it's now the <a href="/logo/explorer/">Explorer</a>. Redirecting…</p>
+  <script>location.replace('/logo/explorer/' + (location.hash || ''));</script>
+</body>
+</html>

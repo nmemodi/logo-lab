@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Rosette — Logo Lab</title>
+    <meta name="description" content="Concentric polygons connected by diagonals — geometric rosettes. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+    <meta property="og:title" content="Polygon Rosette — Logo Lab">
+    <meta property="og:description" content="Concentric polygons connected by diagonals — geometric rosettes.">
+    <meta property="og:image" content="https://natemodi.com/logo/polygon-rosette/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Four Polygon Rosette logo variations from Logo Lab.">
+    <meta property="og:url" content="https://natemodi.com/logo/polygon-rosette/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Polygon Rosette — Logo Lab">
+    <meta name="twitter:description" content="Concentric polygons connected by diagonals — geometric rosettes.">
+    <meta name="twitter:image" content="https://natemodi.com/logo/polygon-rosette/og-image.png">
+    <meta name="twitter:image:alt" content="Four Polygon Rosette logo variations from Logo Lab.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/shared/tools-shared.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
+    <style>
+        #weaveControls {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            transition: opacity 0.2s;
+        }
+
+        #weaveControls.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <aside class="tool-sidebar">
+        <div class="tool-header">
+            <h1 class="tool-header__title">Polygon Rosette</h1>
+        </div>
+        <p class="tool-hint">Lattice patterns from concentric polygons with woven diagonal connections.</p>
+
+        <div class="control-group">
+            <div class="section-label">Geometry</div>
+            <label>Sides <span class="val" id="sidesVal">10</span></label>
+            <input type="range" id="sides" min="3" max="24" value="10" step="1">
+            <label>Outer Radius <span class="val" id="outerRadiusVal">250</span></label>
+            <input type="range" id="outerRadius" min="80" max="400" value="250">
+            <label>Inner Ratio <span class="val" id="innerRatioVal">0.58</span></label>
+            <input type="range" id="innerRatio" min="0.10" max="0.95" value="0.58" step="0.01">
+            <label>Skip <span class="val" id="skipVal">2</span></label>
+            <input type="range" id="skip" min="1" max="5" value="2" step="1">
+            <label>Stroke <span class="val" id="strokeWidthVal">5</span></label>
+            <input type="range" id="strokeWidth" min="1" max="30" value="5">
+            <label>Rotation <span class="val" id="rotationVal">0</span>&deg;</label>
+            <input type="range" id="rotation" min="0" max="360" value="0" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <div class="section-label">Display</div>
+            <label class="toggle-row">
+                <input type="checkbox" id="showOuter" checked>
+                <span>Outer Ring</span>
+            </label>
+            <label class="toggle-row">
+                <input type="checkbox" id="showInner" checked>
+                <span>Inner Ring</span>
+            </label>
+            <label class="toggle-row">
+                <input type="checkbox" id="weave">
+                <span>Weave</span>
+            </label>
+            <div id="weaveControls">
+                <label>Gap <span class="val" id="gapVal">1.8</span></label>
+                <input type="range" id="gap" min="0.5" max="4.0" value="1.8" step="0.1">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="section-label">Color</div>
+            <label>Background</label>
+            <div class="color-row">
+                <input type="color" id="bgColor" value="#cc0000">
+                <span class="color-hex" id="bgColorVal">#cc0000</span>
+            </div>
+            <label>Stroke</label>
+            <div class="color-row">
+                <input type="color" id="fgColor" value="#f0f0f0">
+                <span class="color-hex" id="fgColorVal">#f0f0f0</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Presets</label>
+            <div class="presets" id="presets"></div>
+        </div>
+
+        <button class="btn btn-primary btn-export" id="openExport">Export</button>
+        <button class="btn btn-secondary" id="resetBtn">Reset</button>
+    </aside>
+
+    <div class="tool-canvas tool-canvas--fill">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+    <script src="/shared/rng.js"></script>
+    <script src="/shared/permalink.js"></script>
+    <script src="/shared/tools-export.js"></script>
+    <script src="/shared/tools-registry.js"></script>
+    <script>
+        paper.install(window);
+
+        const canvasEl = document.getElementById('canvas');
+        const wrap = document.querySelector('.tool-canvas');
+
+        paper.setup(canvasEl);
+
+        function resizeCanvas() {
+            view.viewSize = new Size(wrap.clientWidth, wrap.clientHeight);
+        }
+
+        resizeCanvas();
+
+        // ---- State ----
+        let config = {
+            sides: 10,
+            outerRadius: 250,
+            innerRatio: 0.58,
+            skip: 2,
+            strokeWidth: 5,
+            rotation: 0,
+            showOuter: true,
+            showInner: true,
+            weave: false,
+            gap: 1.8,
+            bgColor: '#cc0000',
+            fgColor: '#f0f0f0'
+        };
+
+        // ---- Geometry ----
+        function polyVerts(cx, cy, r, n, rotDeg) {
+            const verts = [];
+            const rot = rotDeg * Math.PI / 180;
+            for (let i = 0; i < n; i++) {
+                const a = (i / n) * Math.PI * 2 - Math.PI / 2 + rot;
+                verts.push(new Point(cx + r * Math.cos(a), cy + r * Math.sin(a)));
+            }
+            return verts;
+        }
+
+        function segIntersect(p1, p2, p3, p4) {
+            const d1x = p2.x - p1.x, d1y = p2.y - p1.y;
+            const d2x = p4.x - p3.x, d2y = p4.y - p3.y;
+            const cross = d1x * d2y - d1y * d2x;
+            if (Math.abs(cross) < 1e-10) return null;
+            const dx = p3.x - p1.x, dy = p3.y - p1.y;
+            const t = (dx * d2y - dy * d2x) / cross;
+            const u = (dx * d1y - dy * d1x) / cross;
+            if (t > 0.02 && t < 0.98 && u > 0.02 && u < 0.98) {
+                return {
+                    point: new Point(p1.x + t * d1x, p1.y + t * d1y),
+                    t, u
+                };
+            }
+            return null;
+        }
+
+        // ---- Weave parity ----
+        // Globally-consistent over/under assignment across all diagonals (the
+        // n right + n left diagonals are treated as 2n "strands"). Walk each
+        // strand in parameter order, alternating over/under at successive
+        // crossings; per-strand parity is propagated by BFS across shared
+        // crossings so every crossing has exactly one strand over.
+        function computeDiagonalWeaveOrder(rightDiags, leftDiags) {
+            const n = rightDiags.length;
+            const strands = [...rightDiags, ...leftDiags];
+            const m = strands.length;
+
+            const crossings = [];                     // { id, i, j, pt }
+            const perStrand = Array.from({ length: m }, () => []);
+
+            for (let ri = 0; ri < n; ri++) {
+                for (let li = 0; li < n; li++) {
+                    const ix = segIntersect(
+                        rightDiags[ri][0], rightDiags[ri][1],
+                        leftDiags[li][0], leftDiags[li][1]
+                    );
+                    if (!ix) continue;
+                    const id = crossings.length;
+                    const i = ri;
+                    const j = n + li;
+                    crossings.push({ id, i, j, pt: ix.point });
+                    perStrand[i].push({ id, t: ix.t });
+                    perStrand[j].push({ id, t: ix.u });
+                }
+            }
+
+            // Sort each strand's crossings by parameter along the strand.
+            for (let s = 0; s < m; s++) perStrand[s].sort((a, b) => a.t - b.t);
+
+            // For each crossing, remember its sorted index on each strand.
+            const idLoc = {};
+            for (let s = 0; s < m; s++) {
+                for (let k = 0; k < perStrand[s].length; k++) {
+                    const id = perStrand[s][k].id;
+                    if (!idLoc[id]) idLoc[id] = {};
+                    idLoc[id][s] = k;
+                }
+            }
+
+            // BFS: starting parity per strand. over_at(strand, k) = (parity[strand] + k) mod 2.
+            // Each crossing constrains the two strands: exactly one is over.
+            const parity = new Array(m).fill(-1);
+            for (let start = 0; start < m; start++) {
+                if (parity[start] !== -1) continue;
+                parity[start] = 0;
+                const queue = [start];
+                while (queue.length) {
+                    const s = queue.shift();
+                    for (const cross of perStrand[s]) {
+                        const c = crossings[cross.id];
+                        const other = (c.i === s) ? c.j : c.i;
+                        const kS = idLoc[c.id][s];
+                        const kOther = idLoc[c.id][other];
+                        const overS = (parity[s] + kS) % 2;
+                        const requiredParityOther = ((1 - overS) - kOther % 2 + 4) % 2;
+                        if (parity[other] === -1) {
+                            parity[other] = requiredParityOther;
+                            queue.push(other);
+                        }
+                        // Already-set conflicts are tolerated: resolved at render.
+                    }
+                }
+            }
+
+            // Decide over-strand for each crossing.
+            const overOf = new Array(crossings.length);
+            for (const c of crossings) {
+                const kI = idLoc[c.id][c.i];
+                const kJ = idLoc[c.id][c.j];
+                const overI = (parity[c.i] + kI) % 2;
+                const overJ = (parity[c.j] + kJ) % 2;
+                if (overI === 1 && overJ === 0)      overOf[c.id] = c.i;
+                else if (overJ === 1 && overI === 0) overOf[c.id] = c.j;
+                else                                 overOf[c.id] = (kI % 2 === 0) ? c.i : c.j;
+            }
+
+            return { crossings, overOf, strands };
+        }
+
+        // ---- Render ----
+        function draw() {
+            project.clear();
+
+            const cx = view.center.x;
+            /* Triangles (n=3) render top-heavy when their geometric center
+               sits at the canvas center — the apex grabs visual weight
+               while mass anchors below. Shift cy down by ~15% of R so the
+               visual centroid lands where the eye expects. */
+            let cy = view.center.y;
+            if (config.sides === 3) cy += config.outerRadius * 0.15;
+            const n = config.sides;
+            const R = config.outerRadius;
+            const r = R * config.innerRatio;
+            const skip = Math.min(config.skip, Math.floor(n / 2));
+            const sw = config.strokeWidth;
+
+            // Background
+            new Path.Rectangle({ rectangle: view.bounds, fillColor: config.bgColor });
+
+            // Vertices
+            const outer = polyVerts(cx, cy, R, n, 0);
+            const inner = polyVerts(cx, cy, r, n, config.rotation);
+
+            // Build diagonal segments
+            const rightDiags = [];
+            const leftDiags = [];
+            for (let i = 0; i < n; i++) {
+                rightDiags.push([outer[i], inner[(i + skip) % n]]);
+                leftDiags.push([outer[i], inner[((i - skip) % n + n) % n]]);
+            }
+
+            // Check for degenerate case: skip makes right and left identical
+            // (happens when skip = 0 or skip = n, which we prevent, but also
+            //  when the polygon is so small that all diags overlap)
+            const isDegen = skip === 0;
+
+            // --- Base layer ---
+
+            // Outer polygon
+            if (config.showOuter) {
+                const p = new Path();
+                outer.forEach(v => p.add(v));
+                p.closed = true;
+                p.strokeColor = config.fgColor;
+                p.strokeWidth = sw;
+                p.fillColor = null;
+                p.strokeJoin = 'miter';
+            }
+
+            // Inner polygon
+            if (config.showInner) {
+                const p = new Path();
+                inner.forEach(v => p.add(v));
+                p.closed = true;
+                p.strokeColor = config.fgColor;
+                p.strokeWidth = sw;
+                p.fillColor = null;
+                p.strokeJoin = 'miter';
+            }
+
+            // Right diagonals
+            for (const seg of rightDiags) {
+                const p = new Path.Line(seg[0], seg[1]);
+                p.strokeColor = config.fgColor;
+                p.strokeWidth = sw;
+            }
+
+            // Left diagonals (skip if degenerate)
+            if (!isDegen) {
+                for (const seg of leftDiags) {
+                    const p = new Path.Line(seg[0], seg[1]);
+                    p.strokeColor = config.fgColor;
+                    p.strokeWidth = sw;
+                }
+            }
+
+            // --- Weave layer ---
+            if (!config.weave || isDegen) return;
+
+            // Globally-consistent over/under per crossing (BFS-propagated
+            // parity over the right + left diagonal strands).
+            const { crossings, overOf, strands } = computeDiagonalWeaveOrder(rightDiags, leftDiags);
+
+            // Polygon edges (outer + inner rings) sit OVER the diagonals —
+            // they form the frame of the rosette.
+            const edgeSegs = [];
+            if (config.showOuter) {
+                for (let i = 0; i < n; i++) {
+                    edgeSegs.push([outer[i], outer[(i + 1) % n]]);
+                }
+            }
+            if (config.showInner) {
+                for (let i = 0; i < n; i++) {
+                    edgeSegs.push([inner[i], inner[(i + 1) % n]]);
+                }
+            }
+            const allDiags = [...rightDiags, ...leftDiags];
+
+            // Two-pass render: every mask first, then every over-strand.
+            // Without this a neighbor's break-mask can paint over a nearby
+            // over-strand at dense crossings (the source of muddled crossings
+            // in tight rosettes).
+            const maskGroup = new Group();
+            const overGroup = new Group();
+
+            // Diagonal-vs-diagonal weave.
+            for (const c of crossings) {
+                const overIdx = overOf[c.id];
+                const overSeg = strands[overIdx];
+                const dir = overSeg[1].subtract(overSeg[0]).normalize();
+                const maskLen = sw * config.gap;
+
+                // Mask along the over-strand. Butt caps so the mask doesn't
+                // protrude tangentially past the endpoint — square caps print
+                // bg ticks past the over redraw at acute-angle crossings.
+                const mask = new Path.Line(
+                    c.pt.subtract(dir.multiply(maskLen)),
+                    c.pt.add(dir.multiply(maskLen))
+                );
+                mask.strokeColor = config.bgColor;
+                mask.strokeWidth = sw * 2.5;
+                mask.strokeCap = 'butt';
+                maskGroup.addChild(mask);
+
+                const overLen = maskLen * 1.15;
+                const over = new Path.Line(
+                    c.pt.subtract(dir.multiply(overLen)),
+                    c.pt.add(dir.multiply(overLen))
+                );
+                over.strokeColor = config.fgColor;
+                over.strokeWidth = sw;
+                over.strokeCap = 'butt';
+                overGroup.addChild(over);
+            }
+
+            // Diagonal-vs-edge weave (rings sit over diagonals).
+            for (const diag of allDiags) {
+                for (const edge of edgeSegs) {
+                    const ix = segIntersect(diag[0], diag[1], edge[0], edge[1]);
+                    if (!ix) continue;
+                    const edgeDir = edge[1].subtract(edge[0]).normalize();
+                    const maskLen = sw * config.gap * 0.8;
+
+                    const mask = new Path.Line(
+                        ix.point.subtract(edgeDir.multiply(maskLen)),
+                        ix.point.add(edgeDir.multiply(maskLen))
+                    );
+                    mask.strokeColor = config.bgColor;
+                    mask.strokeWidth = sw * 2.5;
+                    mask.strokeCap = 'butt';
+                    maskGroup.addChild(mask);
+
+                    const over = new Path.Line(
+                        ix.point.subtract(edgeDir.multiply(maskLen * 1.15)),
+                        ix.point.add(edgeDir.multiply(maskLen * 1.15))
+                    );
+                    over.strokeColor = config.fgColor;
+                    over.strokeWidth = sw;
+                    over.strokeCap = 'butt';
+                    overGroup.addChild(over);
+                }
+            }
+        }
+
+        // ---- Controls ----
+        function bindRange(id, prop, isFloat) {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function() {
+                config[prop] = isFloat ? parseFloat(this.value) : parseInt(this.value);
+                valEl.textContent = this.value;
+
+                // Update skip max when sides change
+                if (prop === 'sides') {
+                    const maxSkip = Math.floor(config.sides / 2);
+                    const skipEl = document.getElementById('skip');
+                    skipEl.max = maxSkip;
+                    if (config.skip > maxSkip) {
+                        config.skip = maxSkip;
+                        skipEl.value = maxSkip;
+                        document.getElementById('skipVal').textContent = maxSkip;
+                    }
+                }
+
+                draw();
+            });
+        }
+
+        function bindColor(id, prop) {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function() {
+                config[prop] = this.value;
+                valEl.textContent = this.value;
+                draw();
+            });
+        }
+
+        function updateWeaveUI() {
+            const wc = document.getElementById('weaveControls');
+            if (config.weave) {
+                wc.classList.remove('disabled');
+            } else {
+                wc.classList.add('disabled');
+            }
+        }
+
+        function syncUI() {
+            for (const [id, prop, isFloat] of [
+                ['sides', 'sides'], ['outerRadius', 'outerRadius'],
+                ['innerRatio', 'innerRatio', true], ['skip', 'skip'],
+                ['strokeWidth', 'strokeWidth'], ['rotation', 'rotation', true],
+                ['gap', 'gap', true]
+            ]) {
+                document.getElementById(id).value = config[prop];
+                document.getElementById(id + 'Val').textContent = config[prop];
+            }
+
+            // Update skip max
+            const maxSkip = Math.floor(config.sides / 2);
+            document.getElementById('skip').max = maxSkip;
+
+            for (const [id, prop] of [['bgColor', 'bgColor'], ['fgColor', 'fgColor']]) {
+                document.getElementById(id).value = config[prop];
+                document.getElementById(id + 'Val').textContent = config[prop];
+            }
+
+            document.getElementById('showOuter').checked = config.showOuter;
+            document.getElementById('showInner').checked = config.showInner;
+            document.getElementById('weave').checked = config.weave;
+            updateWeaveUI();
+        }
+
+        bindRange('sides', 'sides');
+        bindRange('outerRadius', 'outerRadius');
+        bindRange('innerRatio', 'innerRatio', true);
+        bindRange('skip', 'skip');
+        bindRange('strokeWidth', 'strokeWidth');
+        bindRange('rotation', 'rotation', true);
+        bindRange('gap', 'gap', true);
+        bindColor('bgColor', 'bgColor');
+        bindColor('fgColor', 'fgColor');
+
+        document.getElementById('showOuter').addEventListener('change', function() {
+            config.showOuter = this.checked;
+            draw();
+        });
+
+        document.getElementById('showInner').addEventListener('change', function() {
+            config.showInner = this.checked;
+            draw();
+        });
+
+        document.getElementById('weave').addEventListener('change', function() {
+            config.weave = this.checked;
+            updateWeaveUI();
+            draw();
+        });
+
+        // Reset → first landing-page variant (the new default)
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            const tool = window.LogoTools && window.LogoTools.findBySlug('polygon-rosette');
+            if (tool && tool.variants && tool.variants[0]) pm.applyHash(tool.variants[0]);
+        });
+
+        // ---- Permalink ----
+        const {
+          INT_RANGE, FLOAT_RANGE, COLOR, BOOL,
+          WEIGHTED_INT_RANGE, WEIGHTED_FLOAT_RANGE, ENUM_WEIGHTED,
+        } = window.LogoSchema;
+        /* Variant decode:
+             v1: defaults + sw=18 (10 sides, ir=.58, sk=2, rt=0, g=1.8)
+             v2: n=14 r=261 ir=.10 sw=18
+             v3: n= 3 r=260 ir=.50 sk=1 sw=18 rt=256 g=2.2
+             v4: n= 4 r=262 ir=.30 sw=30 rt=148
+           Patterns: sw always ≥18 (heavy stroke); r ~260 in standalone
+           (homepage canvas ~600px); n varies 3-14; sk usually 2 (one
+           variant uses 1); rt either 0 or specific large angle.
+           ⚠ For curator/mosaic 400px iframes, r=260 overflows. Templates
+           are scaled down to r=170. so/si/wv defaults preserved. */
+        const pschema = {
+            /* n flattened across full range — more polygon variety. */
+            n: {
+              ...INT_RANGE(3, 24, 10),
+              randomize(rng) {
+                /* Even weighting across the design-useful range. */
+                const w = [[3,1.2],[4,1.2],[5,1],[6,1.2],[7,1],[8,1.2],[9,0.8],[10,1],[11,0.8],[12,1],[13,0.8],[14,1],[15,0.6],[16,0.6]];
+                const t = w.reduce((s, x) => s + x[1], 0);
+                let r = rng() * t;
+                for (const [v, ww] of w) { r -= ww; if (r <= 0) return v; }
+                return 6;
+              },
+            },
+            r:  WEIGHTED_INT_RANGE(80, 400, 250, { rmin: 140, rmax: 185 }),
+            /* Wider ir — allows shallow-nest, deep-nest, and extremes. */
+            ir: WEIGHTED_FLOAT_RANGE(0.10, 0.95, 0.58, 2, { rmin: 0.12, rmax: 0.78 }),
+            /* sk ∈ {1,2,3} — adds star patterns to the mix. */
+            sk: {
+              ...INT_RANGE(1, 5, 2),
+              randomize(rng) {
+                const r = rng();
+                if (r < 0.50) return 2;  // standard rosette
+                if (r < 0.80) return 1;  // simple connect
+                return 3;                 // star pattern
+              },
+            },
+            /* sw widened — allow thinner, more elegant strokes occasionally. */
+            sw: WEIGHTED_INT_RANGE(1, 30, 5, { rmin: 10, rmax: 30, pow: 0.6 }),
+            rt: FLOAT_RANGE(0, 360, 0, 1),
+            /* Mode lottery (designer-thinking): so/si/wv combine into 5
+               distinct logo types. Set in fg.post for cross-coupling. */
+            so: { ...BOOL(true),  randomize: () => true },  // overridden in post
+            si: { ...BOOL(true),  randomize: () => true },
+            wv: { ...BOOL(false), randomize: () => false },
+            g:  WEIGHTED_FLOAT_RANGE(0.5, 4.0, 1.8, 2, { rmin: 1.2, rmax: 2.8 }),
+            bg: COLOR('#cc0000'),
+            fg: COLOR('#f0f0f0'),
+        };
+
+        /* fg.post does two things, in priority order:
+             (A) ~15% snap to one of 4 variant templates (anchors).
+             (B) Otherwise pick a design "mode" lottery — 5 distinct logo
+                 archetypes the rendering supports. This decouples
+                 so/si/wv from independent randomization so we get clean
+                 archetypes instead of random mixtures. */
+        pschema.fg = {
+          ...pschema.fg,
+          post(state, rng) {
+            if (rng() < 0.15) {
+              const TEMPLATES = [
+                { n: 10, r: 170, ir: 0.58, sk: 2, sw: 18, rt: 0,   g: 1.8, so: true, si: true, wv: false },
+                { n: 14, r: 170, ir: 0.10, sk: 2, sw: 18, rt: 0,   g: 1.8, so: true, si: true, wv: false },
+                { n:  3, r: 170, ir: 0.50, sk: 1, sw: 18, rt: 256, g: 2.2, so: true, si: true, wv: false },
+                { n:  4, r: 170, ir: 0.30, sk: 2, sw: 30, rt: 148, g: 1.8, so: true, si: true, wv: false },
+              ];
+              Object.assign(state, TEMPLATES[Math.floor(rng() * TEMPLATES.length)]);
+              return state.fg;
+            }
+            /* Mode lottery — five distinct logo archetypes. */
+            const m = rng();
+            if (m < 0.35) {
+              /* Mode A: classic rosette (so + si, no weave) — 35%. */
+              state.so = true; state.si = true; state.wv = false;
+            } else if (m < 0.55) {
+              /* Mode B: simple polygon (just outer) — 20%. Push ir
+                 lower so it's irrelevant; force low n for cleaner shape. */
+              state.so = true; state.si = false; state.wv = false;
+              if (state.n > 8) state.n = 3 + Math.floor(rng() * 6); // 3-8 only
+            } else if (m < 0.75) {
+              /* Mode C: woven rosette — 20%. Needs both polygons + gap. */
+              state.so = true; state.si = true; state.wv = true;
+              if (state.ir < 0.25) state.ir = 0.25 + rng() * 0.30; // weaving needs space
+            } else if (m < 0.90) {
+              /* Mode D: star (skip ≥ 2 with simple polygon look) — 15%. */
+              state.so = true; state.si = false; state.wv = false;
+              state.sk = rng() < 0.5 ? 2 : 3;
+              if (state.n < 5) state.n = 5 + Math.floor(rng() * 4); // 5-8 for clear stars
+            } else {
+              /* Mode E: counter-rotated rosette — 10%. Force a clear
+                 rotation gap between outer and inner for motion. */
+              state.so = true; state.si = true; state.wv = false;
+              state.rt = 30 + rng() * 270; // not 0
+            }
+            return state.fg;
+          },
+        };
+        function getPermalinkState() {
+            return {
+                n: config.sides, r: config.outerRadius, ir: config.innerRatio,
+                sk: config.skip, sw: config.strokeWidth, rt: config.rotation,
+                so: config.showOuter, si: config.showInner, wv: config.weave,
+                g: config.gap, bg: config.bgColor, fg: config.fgColor,
+            };
+        }
+        function applyPermalinkState(s) {
+            config.sides = s.n; config.outerRadius = s.r; config.innerRatio = s.ir;
+            config.skip = s.sk; config.strokeWidth = s.sw; config.rotation = s.rt;
+            config.showOuter = s.so; config.showInner = s.si; config.weave = s.wv;
+            config.gap = s.g; config.bgColor = s.bg; config.fgColor = s.fg;
+            syncUI();
+            draw();
+        }
+        const pm = new window.PermalinkManager({
+            toolName: 'polygon-rosette',
+            schema: pschema, getState: getPermalinkState, applyState: applyPermalinkState,
+        });
+        ['sides','outerRadius','innerRatio','skip','strokeWidth','rotation','gap',
+         'bgColor','fgColor','showOuter','showInner','weave'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const evt = (el.type === 'checkbox') ? 'change' : 'input';
+            el.addEventListener(evt, () => pm.update());
+        });
+        document.getElementById('resetBtn').addEventListener('click', () => pm.update());
+
+        function exportSVGString(opts) {
+            const width = opts && opts.width ? opts.width : 800;
+            const height = opts && opts.height ? opts.height : 800;
+            const transparent = !!(opts && opts.transparent);
+            const originalSize = view.viewSize.clone();
+            const needsResize = originalSize.width !== width || originalSize.height !== height;
+
+            try {
+                if (needsResize) view.viewSize = new Size(width, height);
+                draw();
+
+                const svgEl = paper.project.exportSVG({ asString: false });
+                if (!transparent) {
+                    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    bg.setAttribute('width', '100%');
+                    bg.setAttribute('height', '100%');
+                    bg.setAttribute('fill', config.bgColor);
+                    svgEl.insertBefore(bg, svgEl.firstChild);
+                }
+                return new XMLSerializer().serializeToString(svgEl);
+            } finally {
+                if (needsResize) {
+                    view.viewSize = originalSize;
+                    draw();
+                }
+            }
+        }
+
+        // ---- Export ----
+        new ToolExporter({
+            toolName: 'polygon-rosette',
+            getCanvas: () => document.querySelector('canvas'),
+            getSVG: exportSVGString,
+            getBackgroundColor: () => config.bgColor,
+            paperProject: paper.project,
+            baseWidth: 800,
+            baseHeight: 800,
+            getPermalink: () => pm.getPermalink(),
+            flushPermalink: () => pm.flush(),
+        });
+
+        // Resize
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            draw();
+        });
+
+        // Go
+        updateWeaveUI();
+        draw();
+
+        // Paper.js needs a re-render after layout settles
+        requestAnimationFrame(function() {
+            resizeCanvas();
+            draw();
+            pm.decode();
+            pm.setupPresets();
+        });
+    </script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

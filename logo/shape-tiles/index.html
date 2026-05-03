@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Tiles — Logo Lab</title>
+    <meta name="description" content="A single shape tiled across a grid at deterministic rotations. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+    <meta property="og:title" content="Shape Tiles — Logo Lab">
+    <meta property="og:description" content="A single shape tiled across a grid at deterministic rotations.">
+    <meta property="og:image" content="https://natemodi.com/logo/shape-tiles/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Four Shape Tiles logo variations from Logo Lab.">
+    <meta property="og:url" content="https://natemodi.com/logo/shape-tiles/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Shape Tiles — Logo Lab">
+    <meta name="twitter:description" content="A single shape tiled across a grid at deterministic rotations.">
+    <meta name="twitter:image" content="https://natemodi.com/logo/shape-tiles/og-image.png">
+    <meta name="twitter:image:alt" content="Four Shape Tiles logo variations from Logo Lab.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/shared/tools-shared.css">
+    <style>
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+        }
+
+        .shape-btn {
+            aspect-ratio: 1;
+            background: var(--color-bg-elevated);
+            border: 2px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all var(--ease-default);
+        }
+
+        .shape-btn:hover { background: var(--color-bg-hover); }
+        .shape-btn.active { border-color: var(--color-accent); background: #2a2020; }
+
+        .shape-btn canvas {
+            width: 65%;
+            height: 65%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-sidebar">
+        <div class="tool-header">
+            <h1 class="tool-header__title">Shape Tiles</h1>
+        </div>
+        <p class="tool-hint">A central shape is split apart &mdash; halves slide out to the edges, quarters to the corners. Inspired by Vance Jonson's 1970s Dayton Hudson mark.</p>
+
+        <div class="control-group">
+            <label>Shape</label>
+            <div class="shape-grid" id="shapeGrid"></div>
+        </div>
+
+        <div class="control-group">
+            <label>Size <span class="val" id="sizeVal">220</span></label>
+            <input type="range" id="size" min="60" max="360" value="220">
+        </div>
+
+        <div class="control-group">
+            <label>Gap <span class="val" id="gapVal">24</span></label>
+            <input type="range" id="gap" min="0" max="120" value="24">
+        </div>
+
+        <div class="control-group">
+            <label>Rotation <span class="val" id="rotationVal">0&deg;</span></label>
+            <input type="range" id="rotation" min="0" max="360" value="0" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>Background</label>
+            <div class="color-row">
+                <input type="color" id="bgColor" value="#cc0000">
+                <span class="color-hex" id="bgColorVal">#cc0000</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Shape Color</label>
+            <div class="color-row">
+                <input type="color" id="fgColor" value="#f0f0f0">
+                <span class="color-hex" id="fgColorVal">#f0f0f0</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Presets</label>
+            <div class="presets" id="presets"></div>
+        </div>
+
+        <button class="btn btn-primary btn-full btn-export">Export</button>
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="resetBtn">Reset</button>
+            <button class="btn btn-secondary" id="randomBtn">Randomize</button>
+        </div>
+    </div>
+
+    <div class="tool-canvas tool-canvas--fill">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+    <script src="/shared/rng.js"></script>
+    <script src="/shared/permalink.js"></script>
+    <script src="/shared/tools-export.js"></script>
+    <script src="/shared/tools-registry.js"></script>
+    <script>
+        // ===== Shape Helpers =====
+        function polyPoints(n, r, rot) {
+            if (rot === undefined) rot = -Math.PI / 2;
+            const pts = [];
+            for (let i = 0; i < n; i++) {
+                const a = rot + (i / n) * Math.PI * 2;
+                pts.push([r * Math.cos(a), r * Math.sin(a)]);
+            }
+            return pts;
+        }
+
+        function starPoints(n, r, inner, rot) {
+            if (inner === undefined) inner = 0.4;
+            if (rot === undefined) rot = -Math.PI / 2;
+            const pts = [];
+            for (let i = 0; i < n * 2; i++) {
+                const a = rot + (i / (n * 2)) * Math.PI * 2;
+                const rad = i % 2 === 0 ? r : r * inner;
+                pts.push([rad * Math.cos(a), rad * Math.sin(a)]);
+            }
+            return pts;
+        }
+
+        function drawPoints(ctx, pts) {
+            ctx.beginPath();
+            pts.forEach(function(p, i) {
+                if (i === 0) ctx.moveTo(p[0], p[1]);
+                else ctx.lineTo(p[0], p[1]);
+            });
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function paramPoints(fn, steps) {
+            if (!steps) steps = 80;
+            const pts = [];
+            for (let i = 0; i <= steps; i++) {
+                const t = (i / steps) * Math.PI * 2;
+                pts.push(fn(t));
+            }
+            return pts;
+        }
+
+        function pointsToSVGPath(pts) {
+            return pts.map(function(p, i) {
+                return (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ',' + p[1].toFixed(2);
+            }).join('') + 'Z';
+        }
+
+        function svgPoly(pts, c) {
+            return '<polygon points="' + pts.map(function(p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join(' ') + '" fill="' + c + '"/>';
+        }
+
+        // ===== Shape Definitions =====
+        var SHAPES = [
+            {
+                id: 'circle', name: 'Circle',
+                draw: function(ctx, r) { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); },
+                svg: function(r, c) { return '<circle r="' + r.toFixed(1) + '" fill="' + c + '"/>'; }
+            },
+            {
+                id: 'square', name: 'Square',
+                draw: function(ctx, r) { ctx.fillRect(-r, -r, r * 2, r * 2); },
+                svg: function(r, c) { return '<rect x="' + (-r).toFixed(1) + '" y="' + (-r).toFixed(1) + '" width="' + (r * 2).toFixed(1) + '" height="' + (r * 2).toFixed(1) + '" fill="' + c + '"/>'; }
+            },
+            {
+                id: 'roundedSq', name: 'Rounded',
+                draw: function(ctx, r) {
+                    var cr = r * 0.25;
+                    ctx.beginPath();
+                    ctx.roundRect(-r, -r, r * 2, r * 2, cr);
+                    ctx.fill();
+                },
+                svg: function(r, c) { return '<rect x="' + (-r).toFixed(1) + '" y="' + (-r).toFixed(1) + '" width="' + (r * 2).toFixed(1) + '" height="' + (r * 2).toFixed(1) + '" rx="' + (r * 0.25).toFixed(1) + '" fill="' + c + '"/>'; }
+            },
+            {
+                id: 'squircle', name: 'Squircle',
+                draw: function(ctx, r) {
+                    var n = 4;
+                    var pts = paramPoints(function(t) {
+                        var ct = Math.cos(t), st = Math.sin(t);
+                        return [
+                            r * Math.sign(ct) * Math.pow(Math.abs(ct), 2 / n),
+                            r * Math.sign(st) * Math.pow(Math.abs(st), 2 / n)
+                        ];
+                    });
+                    drawPoints(ctx, pts);
+                },
+                svg: function(r, c) {
+                    var n = 4;
+                    var pts = paramPoints(function(t) {
+                        var ct = Math.cos(t), st = Math.sin(t);
+                        return [
+                            r * Math.sign(ct) * Math.pow(Math.abs(ct), 2 / n),
+                            r * Math.sign(st) * Math.pow(Math.abs(st), 2 / n)
+                        ];
+                    });
+                    return '<path d="' + pointsToSVGPath(pts) + '" fill="' + c + '"/>';
+                }
+            },
+            {
+                id: 'diamond', name: 'Diamond',
+                draw: function(ctx, r) { drawPoints(ctx, polyPoints(4, r, 0)); },
+                svg: function(r, c) { return svgPoly(polyPoints(4, r, 0), c); }
+            },
+            {
+                id: 'triangle', name: 'Triangle',
+                draw: function(ctx, r) { drawPoints(ctx, polyPoints(3, r)); },
+                svg: function(r, c) { return svgPoly(polyPoints(3, r), c); }
+            },
+            {
+                id: 'pentagon', name: 'Pentagon',
+                draw: function(ctx, r) { drawPoints(ctx, polyPoints(5, r)); },
+                svg: function(r, c) { return svgPoly(polyPoints(5, r), c); }
+            },
+            {
+                id: 'hexagon', name: 'Hexagon',
+                draw: function(ctx, r) { drawPoints(ctx, polyPoints(6, r)); },
+                svg: function(r, c) { return svgPoly(polyPoints(6, r), c); }
+            },
+            {
+                id: 'octagon', name: 'Octagon',
+                draw: function(ctx, r) { drawPoints(ctx, polyPoints(8, r)); },
+                svg: function(r, c) { return svgPoly(polyPoints(8, r), c); }
+            },
+            {
+                id: 'star4', name: 'Star 4',
+                draw: function(ctx, r) { drawPoints(ctx, starPoints(4, r, 0.38)); },
+                svg: function(r, c) { return svgPoly(starPoints(4, r, 0.38), c); }
+            },
+            {
+                id: 'star5', name: 'Star 5',
+                draw: function(ctx, r) { drawPoints(ctx, starPoints(5, r, 0.38)); },
+                svg: function(r, c) { return svgPoly(starPoints(5, r, 0.38), c); }
+            },
+            {
+                id: 'star6', name: 'Star 6',
+                draw: function(ctx, r) { drawPoints(ctx, starPoints(6, r, 0.42)); },
+                svg: function(r, c) { return svgPoly(starPoints(6, r, 0.42), c); }
+            },
+            {
+                id: 'star8', name: 'Star 8',
+                draw: function(ctx, r) { drawPoints(ctx, starPoints(8, r, 0.45)); },
+                svg: function(r, c) { return svgPoly(starPoints(8, r, 0.45), c); }
+            },
+            {
+                id: 'cross', name: 'Cross',
+                draw: function(ctx, r) {
+                    var w = r * 0.33;
+                    var pts = [[-w,-r],[w,-r],[w,-w],[r,-w],[r,w],[w,w],[w,r],[-w,r],[-w,w],[-r,w],[-r,-w],[-w,-w]];
+                    drawPoints(ctx, pts);
+                },
+                svg: function(r, c) {
+                    var w = r * 0.33;
+                    var pts = [[-w,-r],[w,-r],[w,-w],[r,-w],[r,w],[w,w],[w,r],[-w,r],[-w,w],[-r,w],[-r,-w],[-w,-w]];
+                    return svgPoly(pts, c);
+                }
+            },
+            {
+                id: 'clover', name: 'Clover',
+                draw: function(ctx, r) {
+                    var d = r * 0.42, cr = r * 0.52;
+                    [[0,-d],[d,0],[0,d],[-d,0]].forEach(function(p) {
+                        ctx.beginPath(); ctx.arc(p[0], p[1], cr, 0, Math.PI * 2); ctx.fill();
+                    });
+                },
+                svg: function(r, c) {
+                    var d = r * 0.42, cr = r * 0.52;
+                    return [[0,-d],[d,0],[0,d],[-d,0]].map(function(p) {
+                        return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + cr.toFixed(1) + '" fill="' + c + '"/>';
+                    }).join('');
+                }
+            },
+            {
+                id: 'flower', name: 'Flower',
+                draw: function(ctx, r) {
+                    var d = r * 0.42, cr = r * 0.42;
+                    for (var i = 0; i < 6; i++) {
+                        var a = (i / 6) * Math.PI * 2;
+                        ctx.beginPath(); ctx.arc(d * Math.cos(a), d * Math.sin(a), cr, 0, Math.PI * 2); ctx.fill();
+                    }
+                    ctx.beginPath(); ctx.arc(0, 0, cr * 0.45, 0, Math.PI * 2); ctx.fill();
+                },
+                svg: function(r, c) {
+                    var d = r * 0.42, cr = r * 0.42;
+                    var els = '';
+                    for (var i = 0; i < 6; i++) {
+                        var a = (i / 6) * Math.PI * 2;
+                        var x = d * Math.cos(a), y = d * Math.sin(a);
+                        els += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + cr.toFixed(1) + '" fill="' + c + '"/>';
+                    }
+                    els += '<circle r="' + (cr * 0.45).toFixed(1) + '" fill="' + c + '"/>';
+                    return els;
+                }
+            },
+            {
+                id: 'petal', name: 'Petal',
+                draw: function(ctx, r) {
+                    for (var i = 0; i < 4; i++) {
+                        ctx.save();
+                        ctx.rotate((i / 4) * Math.PI * 2);
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.quadraticCurveTo(r * 0.55, -r * 0.45, 0, -r * 0.92);
+                        ctx.quadraticCurveTo(-r * 0.55, -r * 0.45, 0, 0);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                },
+                svg: function(r, c) {
+                    var els = '';
+                    for (var i = 0; i < 4; i++) {
+                        var deg = (i / 4) * 360;
+                        els += '<path d="M0,0 Q' + (r * 0.55).toFixed(1) + ',' + (-r * 0.45).toFixed(1) + ' 0,' + (-r * 0.92).toFixed(1) + ' Q' + (-r * 0.55).toFixed(1) + ',' + (-r * 0.45).toFixed(1) + ' 0,0Z" fill="' + c + '" transform="rotate(' + deg + ')"/>';
+                    }
+                    return els;
+                }
+            },
+            {
+                id: 'heart', name: 'Heart',
+                draw: function(ctx, r) {
+                    var scale = r / 17;
+                    var pts = paramPoints(function(t) {
+                        return [
+                            16 * Math.pow(Math.sin(t), 3) * scale,
+                            -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale
+                        ];
+                    });
+                    drawPoints(ctx, pts);
+                },
+                svg: function(r, c) {
+                    var scale = r / 17;
+                    var pts = paramPoints(function(t) {
+                        return [
+                            16 * Math.pow(Math.sin(t), 3) * scale,
+                            -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale
+                        ];
+                    });
+                    return '<path d="' + pointsToSVGPath(pts) + '" fill="' + c + '"/>';
+                }
+            },
+            {
+                id: 'burst', name: 'Burst',
+                draw: function(ctx, r) { drawPoints(ctx, starPoints(16, r, 0.78)); },
+                svg: function(r, c) { return svgPoly(starPoints(16, r, 0.78), c); }
+            },
+            {
+                id: 'ring', name: 'Ring',
+                draw: function(ctx, r) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, 0, Math.PI * 2);
+                    ctx.arc(0, 0, r * 0.48, 0, Math.PI * 2, true);
+                    ctx.fill('evenodd');
+                },
+                svg: function(r, c) {
+                    var ir = r * 0.48;
+                    return '<path d="M' + r.toFixed(1) + ',0 A' + r.toFixed(1) + ',' + r.toFixed(1) + ' 0 1,1 ' + (-r).toFixed(1) + ',0 A' + r.toFixed(1) + ',' + r.toFixed(1) + ' 0 1,1 ' + r.toFixed(1) + ',0 Z M' + ir.toFixed(1) + ',0 A' + ir.toFixed(1) + ',' + ir.toFixed(1) + ' 0 1,0 ' + (-ir).toFixed(1) + ',0 A' + ir.toFixed(1) + ',' + ir.toFixed(1) + ' 0 1,0 ' + ir.toFixed(1) + ',0 Z" fill-rule="evenodd" fill="' + c + '"/>';
+                }
+            }
+        ];
+
+        // ===== Config =====
+        var DEFAULT_CONFIG = {
+            shape: 'circle',
+            size: 220,
+            gap: 24,
+            rotation: 0,
+            bgColor: '#f0ece4',
+            fgColor: '#1a1a1a'
+        };
+
+        var config = Object.assign({}, DEFAULT_CONFIG);
+
+        // ===== Canvas Setup =====
+        var canvas = document.getElementById('canvas');
+        var wrap = document.querySelector('.tool-canvas');
+        var ctx = canvas.getContext('2d');
+
+        // ===== Composition layout =====
+        // The shape is conceptually centered at the canvas middle and split into
+        // 9 segments: 1 whole at center, 4 halves at top/right/bottom/left, and
+        // 4 quarters at the corners. Each segment is then translated outward by
+        // the gap so the pieces visually pull apart from one another.
+        //
+        // Each entry: [dx, dy, clipL, clipT, clipR, clipB] all relative to canvas center.
+        // dx,dy is how far the shape is translated for that segment; clip is the
+        // canvas-space rectangle the shape is clipped to.
+        function getSegments(r, g) {
+            return [
+                // Center (whole shape)
+                [ 0,  0, -r,    -r,    r,    r   ],
+                // Edges (halves)
+                [ 0, -g, -r,    -r-g,  r,   -g   ],  // top
+                [ 0,  g, -r,     g,    r,    r+g ],  // bottom
+                [-g,  0, -r-g,  -r,   -g,    r   ],  // left
+                [ g,  0,  g,    -r,    r+g,  r   ],  // right
+                // Corners (quarters)
+                [-g, -g, -r-g,  -r-g, -g,   -g   ],  // top-left
+                [ g, -g,  g,    -r-g,  r+g, -g   ],  // top-right
+                [-g,  g, -r-g,   g,   -g,    r+g ],  // bottom-left
+                [ g,  g,  g,     g,    r+g,  r+g ],  // bottom-right
+            ];
+        }
+
+        function renderComposition(targetCtx, w, h) {
+            var shape = SHAPES.find(function(s) { return s.id === config.shape; });
+            if (!shape) return;
+
+            var r = config.size / 2;
+            var g = config.gap;
+            var rot = config.rotation * Math.PI / 180;
+            var cx = w / 2;
+            var cy = h / 2;
+
+            targetCtx.fillStyle = config.fgColor;
+
+            getSegments(r, g).forEach(function(seg) {
+                var dx = seg[0], dy = seg[1];
+                var clipL = seg[2], clipT = seg[3], clipR = seg[4], clipB = seg[5];
+                targetCtx.save();
+                targetCtx.beginPath();
+                targetCtx.rect(cx + clipL, cy + clipT, clipR - clipL, clipB - clipT);
+                targetCtx.clip();
+                targetCtx.translate(cx + dx, cy + dy);
+                if (rot) targetCtx.rotate(rot);
+                shape.draw(targetCtx, r);
+                targetCtx.restore();
+            });
+        }
+
+        // ===== Render =====
+        function render() {
+            var dpr = window.devicePixelRatio || 1;
+            var w = wrap.clientWidth;
+            var h = wrap.clientHeight;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            ctx.fillStyle = config.bgColor;
+            ctx.fillRect(0, 0, w, h);
+
+            renderComposition(ctx, w, h);
+        }
+
+        // ===== Render to export canvas =====
+        function renderToExportCanvas(expCtx, w, h, opts) {
+            renderComposition(expCtx, w, h);
+        }
+
+        // ===== Export SVG (returns string) =====
+        function exportSVG() {
+            var w = wrap.clientWidth;
+            var h = wrap.clientHeight;
+            var shape = SHAPES.find(function(s) { return s.id === config.shape; });
+            if (!shape) return '';
+
+            var r = config.size / 2;
+            var g = config.gap;
+            var rotDeg = config.rotation;
+            var cx = w / 2;
+            var cy = h / 2;
+
+            var defs = '';
+            var groups = '';
+            getSegments(r, g).forEach(function(seg, i) {
+                var dx = seg[0], dy = seg[1];
+                var clipL = seg[2], clipT = seg[3], clipR = seg[4], clipB = seg[5];
+                var clipId = 'st-clip-' + i;
+                defs += '<clipPath id="' + clipId + '">' +
+                    '<rect x="' + (cx + clipL).toFixed(2) + '" y="' + (cy + clipT).toFixed(2) +
+                    '" width="' + (clipR - clipL).toFixed(2) + '" height="' + (clipB - clipT).toFixed(2) + '"/>' +
+                    '</clipPath>';
+                var transform = 'translate(' + (cx + dx).toFixed(2) + ',' + (cy + dy).toFixed(2) + ')';
+                if (rotDeg !== 0) transform += ' rotate(' + rotDeg + ')';
+                groups += '<g clip-path="url(#' + clipId + ')"><g transform="' + transform + '">' +
+                    shape.svg(r, config.fgColor) + '</g></g>\n';
+            });
+
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">\n' +
+                '<defs>' + defs + '</defs>\n' +
+                '<rect width="' + w + '" height="' + h + '" fill="' + config.bgColor + '"/>\n' +
+                groups + '</svg>';
+        }
+
+        // ===== Shape Picker =====
+        function buildShapePicker() {
+            var grid = document.getElementById('shapeGrid');
+            var dpr = window.devicePixelRatio || 1;
+
+            SHAPES.forEach(function(shape) {
+                var btn = document.createElement('button');
+                btn.className = 'shape-btn' + (shape.id === config.shape ? ' active' : '');
+                btn.dataset.shape = shape.id;
+                btn.title = shape.name;
+
+                var mini = document.createElement('canvas');
+                var sz = 28;
+                mini.width = sz * dpr;
+                mini.height = sz * dpr;
+                mini.style.width = sz + 'px';
+                mini.style.height = sz + 'px';
+
+                var mctx = mini.getContext('2d');
+                mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                mctx.fillStyle = '#999';
+                mctx.translate(sz / 2, sz / 2);
+                shape.draw(mctx, sz * 0.36);
+
+                btn.appendChild(mini);
+                grid.appendChild(btn);
+
+                btn.addEventListener('click', function() {
+                    config.shape = shape.id;
+                    grid.querySelectorAll('.shape-btn').forEach(function(b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    render();
+                });
+            });
+        }
+
+        // ===== Controls =====
+        function bindRange(id, prop, suffix) {
+            var el = document.getElementById(id);
+            var valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function() {
+                config[prop] = parseInt(this.value);
+                valEl.innerHTML = this.value + (suffix || '');
+                render();
+            });
+        }
+
+        function bindColor(id, prop) {
+            var el = document.getElementById(id);
+            var valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function() {
+                config[prop] = this.value;
+                valEl.textContent = this.value;
+                render();
+            });
+        }
+
+        function syncUI() {
+            [['size', 'size', ''], ['gap', 'gap', ''], ['rotation', 'rotation', '&deg;']].forEach(function(item) {
+                document.getElementById(item[0]).value = config[item[1]];
+                document.getElementById(item[0] + 'Val').innerHTML = config[item[1]] + item[2];
+            });
+            [['bgColor', 'bgColor'], ['fgColor', 'fgColor']].forEach(function(item) {
+                document.getElementById(item[0]).value = config[item[1]];
+                document.getElementById(item[0] + 'Val').textContent = config[item[1]];
+            });
+            var grid = document.getElementById('shapeGrid');
+            grid.querySelectorAll('.shape-btn').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.shape === config.shape);
+            });
+        }
+
+        bindRange('size', 'size');
+        bindRange('gap', 'gap');
+        bindRange('rotation', 'rotation', '&deg;');
+        bindColor('bgColor', 'bgColor');
+        bindColor('fgColor', 'fgColor');
+
+        // Reset → first landing-page variant (the new default)
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            var tool = window.LogoTools && window.LogoTools.findBySlug('shape-tiles');
+            if (tool && tool.variants && tool.variants[0]) pm.applyHash(tool.variants[0]);
+        });
+
+        // Randomize — uses seeded RNG for reproducibility. Each click picks a new seed
+        // so subsequent permalinks capture the exact randomized state.
+        function applyRandom(seed) {
+            var rand = window.LogoRNG.mulberry32(seed);
+            config.shape = SHAPES[Math.floor(rand() * SHAPES.length)].id;
+            config.size = 140 + Math.floor(rand() * 220);
+            config.gap = Math.floor(rand() * 80);
+            config.rotation = Math.floor(rand() * 360);
+            config.bgColor = '#' + Math.floor(rand() * 16777215).toString(16).padStart(6, '0');
+            config.fgColor = '#' + Math.floor(rand() * 16777215).toString(16).padStart(6, '0');
+            config.seed = seed;
+        }
+
+        document.getElementById('randomBtn').addEventListener('click', function() {
+            applyRandom(window.LogoRNG.randomSeed());
+            syncUI();
+            render();
+        });
+
+        // ===== Permalink =====
+        var LS = window.LogoSchema;
+        var shapeIds = SHAPES.map(function(s) { return s.id; });
+        /* Shuffle constraints derived from homepage variants:
+           Render math: composition extends ±(size/2 + gap) from center, so
+           total extent = size + 2*gap. Variants land in [410, 460].
+           Independent ranges allowed extents up to 530 → shapes overflow.
+           Fix: post-couple g to sz so total = uniform[340, 410] (slightly
+           tighter than variants for embed/curator safety margin). */
+        var pschema = {
+            sh: LS.ENUM(shapeIds, 'circle'),
+            sz: LS.WEIGHTED_INT_RANGE(60, 360, 220, { rmin: 215, rmax: 260 }),
+            g:  {
+              ...LS.WEIGHTED_INT_RANGE(0, 120, 24, { rmin: 70, rmax: 120 }),
+              post(state, rng) {
+                const target = 340 + Math.floor(rng() * 71); // [340, 410]
+                const sz = (typeof state.sz === 'number') ? state.sz : 220;
+                const g = Math.round((target - sz) / 2);
+                return Math.max(0, Math.min(120, g));
+              },
+            },
+            rt: LS.INT_RANGE(0, 360, 0),
+            bg: LS.COLOR('#f0ece4'),
+            fg: LS.COLOR('#1a1a1a'),
+            sd: LS.SEED(0),
+        };
+        config.seed = 0;
+        function getPermalinkState() {
+            return {
+                sh: config.shape, sz: config.size, g: config.gap, rt: config.rotation,
+                bg: config.bgColor, fg: config.fgColor, sd: config.seed || 0,
+            };
+        }
+        function applyPermalinkState(s) {
+            config.shape = s.sh; config.size = s.sz; config.gap = s.g;
+            config.rotation = s.rt; config.bgColor = s.bg; config.fgColor = s.fg;
+            config.seed = s.sd;
+            syncUI();
+            render();
+        }
+        var pm = new window.PermalinkManager({
+            toolName: 'shape-tiles',
+            schema: pschema, getState: getPermalinkState, applyState: applyPermalinkState,
+        });
+        ['size','gap','rotation','bgColor','fgColor'].forEach(function(id) {
+            document.getElementById(id).addEventListener('input', function() { pm.update(); });
+        });
+        document.querySelectorAll('#resetBtn, #randomBtn').forEach(function(btn) {
+            btn.addEventListener('click', function() { pm.update(); });
+        });
+
+        // ===== ToolExporter =====
+        new ToolExporter({
+            toolName: 'shape-tiles',
+            getCanvas: function() { return canvas; },
+            getSVG: exportSVG,
+            renderToCanvas: renderToExportCanvas,
+            getBackgroundColor: function() { return config.bgColor; },
+            getPermalink: function() { return pm.getPermalink(); },
+            flushPermalink: function() { pm.flush(); },
+        });
+
+        // Hook shape picker for live URL update (picker-btn click is set up in buildShapePicker)
+        var observer = new MutationObserver(function() {
+            document.querySelectorAll('#shapeGrid .shape-btn').forEach(function(btn) {
+                if (btn.__pmBound) return;
+                btn.__pmBound = true;
+                btn.addEventListener('click', function() { pm.update(); });
+            });
+        });
+        observer.observe(document.getElementById('shapeGrid'), { childList: true, subtree: true });
+
+        // ===== Resize =====
+        window.addEventListener('resize', render);
+
+        // ===== Init =====
+        buildShapePicker();
+        render();
+        pm.decode();
+        pm.setupPresets();
+    </script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

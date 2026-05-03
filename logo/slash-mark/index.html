@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slash Mark — Logo Lab</title>
+    <meta name="description" content="A containing shape striped with diagonals that match the ground. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+    <meta property="og:title" content="Slash Mark — Logo Lab">
+    <meta property="og:description" content="A containing shape striped with diagonals that match the ground.">
+    <meta property="og:image" content="https://natemodi.com/logo/slash-mark/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Four Slash Mark logo variations from Logo Lab.">
+    <meta property="og:url" content="https://natemodi.com/logo/slash-mark/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Slash Mark — Logo Lab">
+    <meta name="twitter:description" content="A containing shape striped with diagonals that match the ground.">
+    <meta name="twitter:image" content="https://natemodi.com/logo/slash-mark/og-image.png">
+    <meta name="twitter:image:alt" content="Four Slash Mark logo variations from Logo Lab.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/shared/tools-shared.css">
+    <style>
+        /* Tool-specific overrides only */
+        .shape-btn.active {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: #fff;
+        }
+
+        .link-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            cursor: pointer;
+            margin-left: auto;
+        }
+
+        .link-label input[type="checkbox"] {
+            width: 12px;
+            height: 12px;
+            accent-color: var(--color-accent);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-sidebar">
+        <div class="tool-header">
+            <h1 class="tool-header__title">Slash Mark</h1>
+        </div>
+        <p class="tool-hint">Tapered parallel lines through geometric shapes. Adjust controls to explore variations.</p>
+
+        <div class="section-label">Shape</div>
+
+        <div class="control-group">
+            <div class="presets">
+                <button class="preset-btn shape-btn active" data-shape="circle">Circle</button>
+                <button class="preset-btn shape-btn" data-shape="square">Square</button>
+                <button class="preset-btn shape-btn" data-shape="hexagon">Hex</button>
+                <button class="preset-btn shape-btn" data-shape="triangle">Tri</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Size <span class="val" id="shapeSizeVal">200</span></label>
+            <input type="range" id="shapeSize" min="50" max="350" value="200">
+        </div>
+
+        <div class="section-label">Lines</div>
+
+        <div class="control-group">
+            <label>Count <span class="val" id="numLinesVal">11</span></label>
+            <input type="range" id="numLines" min="1" max="30" value="11">
+        </div>
+
+        <div class="control-group">
+            <label>Spread <span class="val" id="spreadVal">65</span></label>
+            <input type="range" id="spread" min="10" max="100" value="65">
+        </div>
+
+        <div class="control-group">
+            <label>Width <span class="val" id="lineWidthVal">5</span></label>
+            <input type="range" id="lineWidth" min="1" max="40" value="5">
+        </div>
+
+        <div class="control-group">
+            <label>Angle <span class="val" id="angleVal">30</span></label>
+            <input type="range" id="angle" min="0" max="180" value="30">
+        </div>
+
+        <div class="control-group">
+            <label>Taper <span class="val" id="taperVal">95</span></label>
+            <input type="range" id="taper" min="0" max="100" value="95">
+        </div>
+
+        <div class="control-group">
+            <label>Extension <span class="val" id="extensionVal">3</span></label>
+            <input type="range" id="extension" min="-30" max="60" value="3">
+        </div>
+
+        <div class="section-label">Color</div>
+
+        <div class="control-group">
+            <label>Background</label>
+            <div class="color-row">
+                <input type="color" id="bgColor" value="#c8c8c8">
+                <span class="color-hex" id="bgColorVal">#c8c8c8</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Fill</label>
+            <div class="color-row">
+                <input type="color" id="shapeColor" value="#1a1a1a">
+                <span class="color-hex" id="shapeColorVal">#1a1a1a</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>
+                Lines
+                <span class="link-label">
+                    <input type="checkbox" id="matchBg" checked>
+                    match bg
+                </span>
+            </label>
+            <div class="color-row">
+                <input type="color" id="lineColor" value="#c8c8c8">
+                <span class="color-hex" id="lineColorVal">#c8c8c8</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Presets</label>
+            <div class="presets" id="presets"></div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="resetBtn">Reset</button>
+            <button class="btn btn-primary btn-export" id="openExport">Export</button>
+        </div>
+    </div>
+
+    <div class="tool-canvas tool-canvas--fill">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+    <script src="/shared/rng.js"></script>
+    <script src="/shared/permalink.js"></script>
+    <script src="/shared/tools-export.js"></script>
+    <script src="/shared/tools-registry.js"></script>
+    <script>
+        // ---- State ----
+        const config = {
+            numLines: 11,
+            angle: 30,
+            lineWidth: 5,
+            taper: 0.95,
+            spread: 0.65,
+            extension: 3,
+            shape: 'circle',
+            shapeSize: 200,
+            bgColor: '#c8c8c8',
+            shapeColor: '#1a1a1a',
+            lineColor: '#c8c8c8',
+            matchBg: true
+        };
+
+        // ---- Canvas setup ----
+        const canvasEl = document.getElementById('canvas');
+        const wrap = document.querySelector('.tool-canvas');
+        const EXPORT_PAD = 30;
+        const PREVIEW_FILL = 1;
+
+        function exportSize() {
+            return (config.shapeSize + EXPORT_PAD) * 2;
+        }
+
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const base = exportSize();
+            const fit = Math.max(1, Math.min(wrap.clientWidth, wrap.clientHeight) * PREVIEW_FILL);
+            const w = fit;
+            const h = fit;
+            canvasEl.width = w * dpr;
+            canvasEl.height = h * dpr;
+            canvasEl.style.width = w + 'px';
+            canvasEl.style.height = h + 'px';
+            wrap.style.backgroundColor = config.bgColor;
+            const ctx = canvasEl.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            return { ctx, w, base };
+        }
+
+        // ---- Geometry: shape vertices ----
+        function getShapeVertices(shape, cx, cy, size) {
+            const verts = [];
+            let sides, offsetAngle;
+            switch (shape) {
+                case 'square':   sides = 4; offsetAngle = Math.PI / 4; break;
+                case 'hexagon':  sides = 6; offsetAngle = -Math.PI / 2; break;
+                case 'triangle': sides = 3; offsetAngle = -Math.PI / 2; break;
+                default: return verts;
+            }
+            for (let i = 0; i < sides; i++) {
+                const a = (i / sides) * Math.PI * 2 + offsetAngle;
+                verts.push({ x: cx + size * Math.cos(a), y: cy + size * Math.sin(a) });
+            }
+            return verts;
+        }
+
+        function getShapePath(shape, cx, cy, size) {
+            const path = new Path2D();
+            if (shape === 'circle') {
+                path.arc(cx, cy, size, 0, Math.PI * 2);
+            } else {
+                const verts = getShapeVertices(shape, cx, cy, size);
+                path.moveTo(verts[0].x, verts[0].y);
+                for (let i = 1; i < verts.length; i++) path.lineTo(verts[i].x, verts[i].y);
+                path.closePath();
+            }
+            return path;
+        }
+
+        // ---- Geometry: ray-shape intersection ----
+        function raySegmentIntersect(px, py, dx, dy, ax, ay, bx, by) {
+            const ex = bx - ax, ey = by - ay;
+            const denom = dx * ey - dy * ex;
+            if (Math.abs(denom) < 1e-10) return null;
+            const t = ((ax - px) * ey - (ay - py) * ex) / denom;
+            const s = ((ax - px) * dy - (ay - py) * dx) / denom;
+            return (s >= 0 && s <= 1) ? t : null;
+        }
+
+        function rayPolygonIntersect(px, py, dx, dy, vertices) {
+            const ts = [];
+            for (let i = 0; i < vertices.length; i++) {
+                const j = (i + 1) % vertices.length;
+                const t = raySegmentIntersect(px, py, dx, dy,
+                    vertices[i].x, vertices[i].y, vertices[j].x, vertices[j].y);
+                if (t !== null) ts.push(t);
+            }
+            if (ts.length < 2) return null;
+            ts.sort((a, b) => a - b);
+            return [ts[0], ts[ts.length - 1]];
+        }
+
+        // ---- Taper profile ----
+        function widthProfile(t, taper) {
+            return (1 - taper) + taper * Math.sin(Math.PI * t);
+        }
+
+        // ---- Compute all line endpoints ----
+        function computeLines(cx, cy) {
+            const angleRad = config.angle * Math.PI / 180;
+            const dirX = Math.sin(angleRad);
+            const dirY = -Math.cos(angleRad);
+            const perpX = Math.cos(angleRad);
+            const perpY = Math.sin(angleRad);
+            const n = config.numLines;
+            const totalSpan = config.shapeSize * 2 * config.spread;
+            const lines = [];
+
+            for (let i = 0; i < n; i++) {
+                const offset = n === 1 ? 0 : -totalSpan / 2 + totalSpan * i / (n - 1);
+                const mx = cx + offset * perpX;
+                const my = cy + offset * perpY;
+
+                let t1, t2;
+                if (config.shape === 'circle') {
+                    const d2 = offset * offset;
+                    const r2 = config.shapeSize * config.shapeSize;
+                    if (d2 >= r2) continue;
+                    const half = Math.sqrt(r2 - d2);
+                    t1 = -half;
+                    t2 = half;
+                } else {
+                    const verts = getShapeVertices(config.shape, cx, cy, config.shapeSize);
+                    const result = rayPolygonIntersect(mx, my, dirX, dirY, verts);
+                    if (!result) continue;
+                    t1 = result[0];
+                    t2 = result[1];
+                }
+
+                t1 -= config.extension;
+                t2 += config.extension;
+
+                lines.push({
+                    x1: mx + t1 * dirX, y1: my + t1 * dirY,
+                    x2: mx + t2 * dirX, y2: my + t2 * dirY
+                });
+            }
+
+            return { lines, perpX, perpY };
+        }
+
+        // ---- Draw tapered line on canvas ----
+        function drawTaperedLine(ctx, line, maxWidth, taper, nx, ny) {
+            const steps = 36;
+            const halfW = maxWidth / 2;
+            const dx = line.x2 - line.x1;
+            const dy = line.y2 - line.y1;
+
+            ctx.beginPath();
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const w = halfW * widthProfile(t, taper);
+                const x = line.x1 + dx * t + nx * w;
+                const y = line.y1 + dy * t + ny * w;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            for (let i = steps; i >= 0; i--) {
+                const t = i / steps;
+                const w = halfW * widthProfile(t, taper);
+                ctx.lineTo(line.x1 + dx * t - nx * w, line.y1 + dy * t - ny * w);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        /* Triangles render top-heavy when their geometric center is at h/2
+           (the apex grabs visual weight while the base anchors below).
+           Shifting cy down by ~15% of the shape size moves the visual mass
+           into the lower half of the frame, where the eye expects it. */
+        function shapeCenter(shape, w, h, size) {
+            const cx = w / 2;
+            let cy = h / 2;
+            if (shape === 'triangle') cy += size * 0.15;
+            return { cx, cy };
+        }
+
+        // ---- Main draw ----
+        function draw() {
+            const { ctx, w, base } = setupCanvas();
+            const scale = w / base;
+            ctx.save();
+            ctx.scale(scale, scale);
+            renderToExportCanvas(ctx, base, base, { transparent: false });
+            ctx.restore();
+        }
+
+        // ---- Render to arbitrary canvas (for export) ----
+        function renderToExportCanvas(ctx, w, h, opts) {
+            const { cx, cy } = shapeCenter(config.shape, w, h, config.shapeSize);
+
+            if (!opts.transparent) {
+                ctx.fillStyle = config.bgColor;
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            const shapePath = getShapePath(config.shape, cx, cy, config.shapeSize);
+            ctx.fillStyle = config.shapeColor;
+            ctx.fill(shapePath);
+
+            const { lines, perpX, perpY } = computeLines(cx, cy);
+            ctx.fillStyle = config.lineColor;
+            for (const line of lines) {
+                drawTaperedLine(ctx, line, config.lineWidth, config.taper, perpX, perpY);
+            }
+        }
+
+        // ---- SVG generation ----
+        function generateSVG() {
+            const sz = config.shapeSize + EXPORT_PAD;
+            const vw = sz * 2, vh = sz * 2;
+            const { cx, cy } = shapeCenter(config.shape, vw, vh, config.shapeSize);
+
+            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw} ${vh}" width="${vw}" height="${vh}">\n`;
+            svg += `<rect width="${vw}" height="${vh}" fill="${config.bgColor}"/>\n`;
+
+            if (config.shape === 'circle') {
+                svg += `<circle cx="${cx}" cy="${cy}" r="${config.shapeSize}" fill="${config.shapeColor}"/>\n`;
+            } else {
+                const verts = getShapeVertices(config.shape, cx, cy, config.shapeSize);
+                svg += `<polygon points="${verts.map(v => v.x.toFixed(2) + ',' + v.y.toFixed(2)).join(' ')}" fill="${config.shapeColor}"/>\n`;
+            }
+
+            const { lines, perpX, perpY } = computeLines(cx, cy);
+            const steps = 36;
+            const halfW = config.lineWidth / 2;
+
+            for (const line of lines) {
+                const dx = line.x2 - line.x1, dy = line.y2 - line.y1;
+                let d = '';
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const w = halfW * widthProfile(t, config.taper);
+                    const x = (line.x1 + dx * t + perpX * w).toFixed(2);
+                    const y = (line.y1 + dy * t + perpY * w).toFixed(2);
+                    d += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+                }
+                for (let i = steps; i >= 0; i--) {
+                    const t = i / steps;
+                    const w = halfW * widthProfile(t, config.taper);
+                    const x = (line.x1 + dx * t - perpX * w).toFixed(2);
+                    const y = (line.y1 + dy * t - perpY * w).toFixed(2);
+                    d += 'L' + x + ',' + y + ' ';
+                }
+                d += 'Z';
+                svg += `<path d="${d}" fill="${config.lineColor}"/>\n`;
+            }
+
+            svg += '</svg>';
+            return svg;
+        }
+
+        // ---- Controls ----
+        function bindRange(id, prop, divisor) {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function () {
+                const raw = parseFloat(this.value);
+                config[prop] = divisor ? raw / divisor : raw;
+                valEl.textContent = Math.round(raw);
+                draw();
+            });
+        }
+
+        function bindColor(id, prop) {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function () {
+                config[prop] = this.value;
+                valEl.textContent = this.value;
+                if (prop === 'bgColor' && config.matchBg) {
+                    config.lineColor = this.value;
+                    document.getElementById('lineColor').value = this.value;
+                    document.getElementById('lineColorVal').textContent = this.value;
+                }
+                draw();
+            });
+        }
+
+        bindRange('numLines', 'numLines');
+        bindRange('angle', 'angle');
+        bindRange('lineWidth', 'lineWidth');
+        bindRange('taper', 'taper', 100);
+        bindRange('spread', 'spread', 100);
+        bindRange('extension', 'extension');
+        bindRange('shapeSize', 'shapeSize');
+        bindColor('bgColor', 'bgColor');
+        bindColor('shapeColor', 'shapeColor');
+        bindColor('lineColor', 'lineColor');
+
+        document.getElementById('lineColor').addEventListener('input', function () {
+            if (this.value !== config.bgColor) {
+                config.matchBg = false;
+                document.getElementById('matchBg').checked = false;
+            }
+        });
+
+        document.getElementById('matchBg').addEventListener('change', function () {
+            config.matchBg = this.checked;
+            if (this.checked) {
+                config.lineColor = config.bgColor;
+                document.getElementById('lineColor').value = config.bgColor;
+                document.getElementById('lineColorVal').textContent = config.bgColor;
+                draw();
+            }
+        });
+
+        // Shape selector
+        document.querySelectorAll('.shape-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                config.shape = this.dataset.shape;
+                draw();
+            });
+        });
+
+        // Sync all UI from config
+        function syncUI() {
+            const map = [
+                ['numLines', 'numLines', 1],
+                ['angle', 'angle', 1],
+                ['lineWidth', 'lineWidth', 1],
+                ['taper', 'taper', 100],
+                ['spread', 'spread', 100],
+                ['extension', 'extension', 1],
+                ['shapeSize', 'shapeSize', 1],
+            ];
+            for (const [id, prop, mul] of map) {
+                const v = Math.round(config[prop] * (mul || 1));
+                document.getElementById(id).value = v;
+                document.getElementById(id + 'Val').textContent = v;
+            }
+            for (const [id, prop] of [['bgColor', 'bgColor'], ['shapeColor', 'shapeColor'], ['lineColor', 'lineColor']]) {
+                document.getElementById(id).value = config[prop];
+                document.getElementById(id + 'Val').textContent = config[prop];
+            }
+            document.getElementById('matchBg').checked = config.matchBg;
+            document.querySelectorAll('.shape-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.shape === config.shape);
+            });
+        }
+
+        // Reset → first landing-page variant (the new default)
+        document.getElementById('resetBtn').addEventListener('click', function () {
+            const tool = window.LogoTools && window.LogoTools.findBySlug('slash-mark');
+            if (tool && tool.variants && tool.variants[0]) pm.applyHash(tool.variants[0]);
+        });
+
+        // Resize
+        window.addEventListener('resize', draw);
+
+        // ---- Permalink ----
+        const {
+          INT_RANGE, FLOAT_RANGE, COLOR, ENUM, BOOL,
+          WEIGHTED_INT_RANGE, ENUM_WEIGHTED,
+        } = window.LogoSchema;
+        /* Variant decoding:
+             v1: a=135 sh=square  n=9 sp=26  ex=-1 lw= 5 tp=100
+             v2: a= 90 sh=hexagon n=5 sp=86  ex=60 lw=26 tp=100
+             v3: a=135 sh=circle  n=9 sp=10  ex=60 lw=40 tp=100
+             v4: a= 45 sh=circle  n=5 sp=100 ex=60 lw=40 tp=100
+           Patterns: a always multiple of 45; n always odd (5 or 9);
+           tp always 100; sp varies wide (10-100); lw correlates with sz;
+           ex=60 in 3/4 cases; lc ALWAYS = bg (cuts invisible outside shape).
+           Color: bg→smart-pair bg, sc→smart-pair fg, lc→bg (post-coupled). */
+        const pschema = {
+            /* Force odd line counts (variants used 5 or 9 only). */
+            n: {
+              ...INT_RANGE(1, 30, 11),
+              randomize(rng) {
+                const w = [[5, 4], [9, 4], [7, 2], [11, 1], [3, 1]];
+                const t = w.reduce((s, x) => s + x[1], 0);
+                let r = rng() * t;
+                for (const [v, ww] of w) { r -= ww; if (r <= 0) return v; }
+                return 5;
+              },
+            },
+            /* a anchored to 45/90/135 ±5° (variants used these exactly). */
+            a: {
+              ...INT_RANGE(0, 180, 30),
+              randomize(rng) {
+                const anchors = [45, 90, 135];
+                const base = anchors[Math.floor(rng() * anchors.length)];
+                const jitter = Math.floor(-5 + rng() * 11); // ±5°
+                return Math.max(0, Math.min(180, base + jitter));
+              },
+            },
+            /* Line width is finalized after size so the mark keeps a stable rhythm. */
+            lw: WEIGHTED_INT_RANGE(1, 40, 5, { rmin: 8, rmax: 40 }),
+            /* tp forced to 100 (every variant uses max taper). */
+            tp: { ...INT_RANGE(0, 100, 95), randomize: () => 100 },
+            sp: WEIGHTED_INT_RANGE(10, 100, 65, { rmin: 25, rmax: 100 }),
+            /* ex=60 in 3/4 variants. Heavy bias to 60, occasional default. */
+            ex: {
+              ...INT_RANGE(-30, 60, 3),
+              randomize(rng) {
+                if (rng() < 0.75) return 60;
+                return Math.floor(-5 + rng() * 15); // [-5, 9] near default
+              },
+            },
+            sh: ENUM_WEIGHTED([
+              ['triangle', 5], ['circle', 2.5], ['square', 2], ['hexagon', 2],
+            ], 'circle'),
+            sz: WEIGHTED_INT_RANGE(50, 350, 200, { rmin: 140, rmax: 195 }),
+            bg: COLOR('#c8c8c8'),
+            /* sc post-coupled to the smart-pair fg (or mono fg) so the shape
+               color is harmonious with bg, not a random clash. */
+            sc: {
+              ...COLOR('#1a1a1a'),
+              post(state, rng, opts) {
+                if (opts && opts.palette === 'mono' && opts.monoFg) return opts.monoFg;
+                if (opts && opts._fullPair) return opts._fullPair[1];
+                return state.sc;
+              },
+            },
+            /* lc ALWAYS matches bg — variants set this explicitly in every case. */
+            lc: {
+              ...COLOR('#c8c8c8'),
+              post(state) {
+                return state.bg;
+              },
+            },
+            mb: { ...BOOL(true), randomize: (rng) => rng() < 0.9 },
+        };
+
+        /* Finalize line width after size, with occasional curated compositions. */
+        pschema.lw = {
+          ...pschema.lw,
+          post(state, rng) {
+            // Curated compositions
+            if (rng() < 0.30) {
+              const TEMPLATES = [
+                /* Diagonal \ slash through a square */
+                { a: 135, sh: 'square',   n: 9, sp: 26,  ex: -1, lw: 8,  tp: 100, sz: 170 },
+                /* Horizontal slashes through a hexagon */
+                { a:  90, sh: 'hexagon',  n: 5, sp: 86,  ex: 60, lw: 26, tp: 100, sz: 170 },
+                /* Horizontal slashes through a circle */
+                { a:  90, sh: 'circle',   n: 7, sp: 50,  ex: 60, lw: 25, tp: 100, sz: 170 },
+                /* Diagonal / slash through a circle (varied spread) */
+                { a:  45, sh: 'circle',   n: 5, sp: 100, ex: 60, lw: 35, tp: 100, sz: 170 },
+                /* Diagonal / through square (mirror of v1) */
+                { a:  45, sh: 'square',   n: 9, sp: 26,  ex: -1, lw: 8,  tp: 100, sz: 170 },
+                /* Horizontal slashes through triangle */
+                { a:  90, sh: 'triangle', n: 5, sp: 70,  ex: 60, lw: 22, tp: 100, sz: 170 },
+                /* Diagonal \ on triangle (variety) */
+                { a: 135, sh: 'triangle', n: 7, sp: 60,  ex: 60, lw: 22, tp: 100, sz: 170 },
+                /* Horizontal slashes on square */
+                { a:  90, sh: 'square',   n: 7, sp: 60,  ex: 60, lw: 22, tp: 100, sz: 170 },
+              ];
+              Object.assign(state, TEMPLATES[Math.floor(rng() * TEMPLATES.length)]);
+              return state.lw;
+            }
+            // Otherwise: couple lw to sz (variant ratios were 0.04, 0.13, 0.20, 0.20)
+            const sz = (typeof state.sz === 'number') ? state.sz : 170;
+            const ratio = 0.10 + rng() * 0.12; // [0.10, 0.22]
+            return Math.max(1, Math.min(40, Math.round(sz * ratio)));
+          },
+        };
+        function getPermalinkState() {
+            return {
+                n: config.numLines, a: config.angle, lw: config.lineWidth,
+                tp: Math.round(config.taper * 100), sp: Math.round(config.spread * 100),
+                ex: config.extension, sh: config.shape, sz: config.shapeSize,
+                bg: config.bgColor, sc: config.shapeColor, lc: config.lineColor,
+                mb: config.matchBg,
+            };
+        }
+        function applyPermalinkState(s) {
+            config.numLines = s.n; config.angle = s.a; config.lineWidth = s.lw;
+            config.taper = s.tp / 100; config.spread = s.sp / 100; config.extension = s.ex;
+            config.shape = s.sh; config.shapeSize = s.sz;
+            config.bgColor = s.bg; config.shapeColor = s.sc; config.lineColor = s.lc;
+            config.matchBg = s.mb;
+            syncUI();
+            draw();
+        }
+        const pm = new window.PermalinkManager({
+            toolName: 'slash-mark',
+            schema: pschema, getState: getPermalinkState, applyState: applyPermalinkState,
+        });
+        ['numLines','angle','lineWidth','taper','spread','extension','shapeSize',
+         'bgColor','shapeColor','lineColor','matchBg'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const evt = (el.type === 'checkbox') ? 'change' : 'input';
+            el.addEventListener(evt, () => pm.update());
+        });
+        document.querySelectorAll('.shape-btn, #resetBtn').forEach(btn =>
+            btn.addEventListener('click', () => pm.update()));
+
+        new ToolExporter({
+            toolName: 'slash-mark',
+            getCanvas: () => canvasEl,
+            getSVG: generateSVG,
+            getBackgroundColor: () => config.bgColor,
+            baseWidth: exportSize(),
+            baseHeight: exportSize(),
+            renderToCanvas: (ctx, w, h, opts) => {
+                // Re-compute base size for export
+                const sz = exportSize();
+                const scaleX = w / sz;
+                const scaleY = h / sz;
+                ctx.save();
+                ctx.scale(scaleX, scaleY);
+                renderToExportCanvas(ctx, sz, sz, opts);
+                ctx.restore();
+            },
+            getPermalink: () => pm.getPermalink(),
+            flushPermalink: () => pm.flush(),
+        });
+
+        // Go
+        draw();
+        pm.decode();
+        pm.setupPresets();
+    </script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

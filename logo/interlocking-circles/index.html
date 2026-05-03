@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interlocking Circles — Logo Lab</title>
+    <meta name="description" content="Overlapping rings with controlled break-and-weave. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+    <meta property="og:title" content="Interlocking Circles — Logo Lab">
+    <meta property="og:description" content="Overlapping rings with controlled break-and-weave.">
+    <meta property="og:image" content="https://natemodi.com/logo/interlocking-circles/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Four Interlocking Circles logo variations from Logo Lab.">
+    <meta property="og:url" content="https://natemodi.com/logo/interlocking-circles/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Interlocking Circles — Logo Lab">
+    <meta name="twitter:description" content="Overlapping rings with controlled break-and-weave.">
+    <meta name="twitter:image" content="https://natemodi.com/logo/interlocking-circles/og-image.png">
+    <meta name="twitter:image:alt" content="Four Interlocking Circles logo variations from Logo Lab.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/shared/tools-shared.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-full.min.js"></script>
+    <style>
+        #weaveControls,
+        #neighborsGroup {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: opacity 0.2s;
+        }
+
+        #weaveControls.disabled,
+        #neighborsGroup.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        canvas {
+            cursor: grab;
+        }
+
+        canvas:active { cursor: grabbing; }
+    </style>
+</head>
+<body>
+    <div class="tool-sidebar">
+        <div class="tool-header">
+            <h1 class="tool-header__title">Interlocking Circles</h1>
+        </div>
+        <p class="tool-hint">Drag circles to reposition. Adjust controls to explore variations.</p>
+
+        <div class="control-group">
+            <div class="section-label">Geometry</div>
+            <label>Layout</label>
+            <select id="layout">
+                <option value="auto">Auto</option>
+                <option value="ring">Ring</option>
+                <option value="grid">Grid</option>
+                <option value="line">Line</option>
+            </select>
+            <label>Circles <span class="val" id="numCirclesVal">2</span></label>
+            <input type="range" id="numCircles" min="2" max="15" value="2" step="1">
+            <div id="neighborsGroup">
+                <label>Neighbors <span class="val" id="neighborsVal">1</span></label>
+                <input type="range" id="neighbors" min="1" max="7" value="1" step="1">
+            </div>
+            <label>Radius <span class="val" id="radiusVal">150</span></label>
+            <input type="range" id="radius" min="30" max="300" value="150">
+            <label>Stroke <span class="val" id="strokeWidthVal">28</span></label>
+            <input type="range" id="strokeWidth" min="2" max="80" value="28">
+            <label>Spacing <span class="val" id="spacingVal">110</span></label>
+            <input type="range" id="spacing" min="10" max="400" value="110">
+            <label>Rotation <span class="val" id="rotationVal">0</span>°</label>
+            <input type="range" id="rotation" min="-180" max="180" value="0" step="1">
+        </div>
+
+        <div class="control-group">
+            <div class="section-label">Display</div>
+            <label class="toggle-row">
+                <input type="checkbox" id="weave" checked>
+                <span>Weave</span>
+            </label>
+            <div id="weaveControls">
+                <label>Overlap <span class="val" id="gapVal">1.5</span></label>
+                <input type="range" id="gap" min="0.5" max="4" value="1.5" step="0.1">
+                <label>Break <span class="val" id="breakVal">0.7</span></label>
+                <input type="range" id="break" min="0" max="1.5" value="0.7" step="0.05">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="section-label">Color</div>
+            <label>Background</label>
+            <div class="color-row">
+                <input type="color" id="bgColor" value="#cc0000">
+                <span class="color-hex" id="bgColorVal">#cc0000</span>
+            </div>
+            <label>Stroke</label>
+            <div class="color-row">
+                <input type="color" id="fgColor" value="#f0f0f0">
+                <span class="color-hex" id="fgColorVal">#f0f0f0</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Presets</label>
+            <div class="presets" id="presets"></div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="resetBtn">Reset</button>
+            <button class="btn btn-primary btn-export" id="openExport">Export</button>
+        </div>
+    </div>
+
+    <div class="tool-canvas tool-canvas--fill">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+    <script src="/shared/rng.js"></script>
+    <script src="/shared/permalink.js"></script>
+    <script src="/shared/tools-export.js"></script>
+    <script src="/shared/tools-registry.js"></script>
+    <script>
+        paper.install(window);
+
+        const canvasEl = document.getElementById('canvas');
+        const wrap = document.querySelector('.tool-canvas');
+
+        paper.setup(canvasEl);
+
+        function resizeCanvas() {
+            view.viewSize = new Size(wrap.clientWidth, wrap.clientHeight);
+        }
+
+        resizeCanvas();
+
+        // ---- State ----
+        let config = {
+            numCircles: 2,
+            layout: 'auto',
+            neighbors: 1,
+            radius: 150,
+            strokeWidth: 28,
+            spacing: 110,
+            rotation: 0,
+            weave: true,
+            gap: 1.5,
+            breakWidth: 0.7,
+            bgColor: '#cc0000',
+            fgColor: '#f0f0f0'
+        };
+
+        let currentBgColor = config.bgColor;
+        let positions = [];
+        let dragIdx = null;
+        let dragOffset = null;
+
+        // ---- Geometry helpers ----
+        function circleIntersections(c1, r1, c2, r2) {
+            const dx = c2.x - c1.x;
+            const dy = c2.y - c1.y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (d > r1 + r2 || d < Math.abs(r1 - r2) || d < 1e-6) return [];
+
+            const a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
+            const h = Math.sqrt(Math.max(0, r1 * r1 - a * a));
+            const mx = c1.x + a * dx / d;
+            const my = c1.y + a * dy / d;
+
+            return [
+                new Point(mx + h * dy / d, my - h * dx / d),
+                new Point(mx - h * dy / d, my + h * dx / d)
+            ];
+        }
+
+        function makeArc(center, radius, fromAngle, toAngle, steps) {
+            steps = steps || 40;
+            const pts = [];
+            for (let i = 0; i <= steps; i++) {
+                const a = fromAngle + (toAngle - fromAngle) * (i / steps);
+                pts.push(new Point(
+                    center.x + radius * Math.cos(a),
+                    center.y + radius * Math.sin(a)
+                ));
+            }
+            return pts;
+        }
+
+        // ---- Layout ----
+        function maxNeighbors(n) {
+            return Math.max(1, Math.floor(n / 2));
+        }
+
+        // Ring radius such that each circle intersects exactly k neighbors
+        // on each side. Two circles k angular steps apart on a ring of
+        // radius R have center distance 2R·sin(kπ/n); they intersect when
+        // that distance < 2r. Picking R between the k and k+1 thresholds
+        // makes the k-th neighbor overlap and the (k+1)-th miss.
+        function ringRadiusForNeighbors(n, k, r) {
+            if (n < 2) return 0;
+            k = Math.max(1, Math.min(k, maxNeighbors(n)));
+            const thresholdAt = step => r / Math.sin(step * Math.PI / n);
+            const lo = thresholdAt(k);
+            if (k + 1 > Math.floor(n / 2)) {
+                // No "next" neighbor pair exists — pick something that
+                // makes everything overlap nicely (Venn-style).
+                return Math.max(r * 0.6, lo * 0.6);
+            }
+            const hi = thresholdAt(k + 1);
+            return (lo + hi) / 2;
+        }
+
+        function ringPositions(cx, cy, n, R) {
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+                out.push(new Point(cx + Math.cos(angle) * R, cy + Math.sin(angle) * R));
+            }
+            return out;
+        }
+
+        function gridPositions(cx, cy, n, sp) {
+            const cols = Math.ceil(Math.sqrt(n * 1.5));
+            const rows = Math.ceil(n / cols);
+            const totalH = (rows - 1) * sp * 0.85;
+            const startY = cy - totalH / 2;
+            const out = [];
+            let count = 0;
+            for (let row = 0; row < rows && count < n; row++) {
+                const colsInRow = Math.min(cols, n - count);
+                const rowOffset = (row % 2 === 1) ? sp * 0.5 : 0;
+                const rowW = (colsInRow - 1) * sp;
+                const rowStartX = cx - rowW / 2 + rowOffset;
+                for (let col = 0; col < colsInRow && count < n; col++) {
+                    out.push(new Point(rowStartX + col * sp, startY + row * sp * 0.85));
+                    count++;
+                }
+            }
+            return out;
+        }
+
+        function linePositions(cx, cy, n, sp) {
+            const totalW = (n - 1) * sp;
+            const startX = cx - totalW / 2;
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                out.push(new Point(startX + i * sp, cy));
+            }
+            return out;
+        }
+
+        function autoPositions(cx, cy, n, sp) {
+            if (n === 2) {
+                return [new Point(cx - sp / 2, cy), new Point(cx + sp / 2, cy)];
+            }
+            if (n <= 4) {
+                return ringPositions(cx, cy, n, sp);
+            }
+            if (n <= 6) {
+                const out = [];
+                const topY = cy - sp * 0.3;
+                const botY = cy + sp * 0.3;
+                const gap = sp * 1.15;
+                out.push(new Point(cx - gap, topY));
+                out.push(new Point(cx, topY));
+                out.push(new Point(cx + gap, topY));
+                out.push(new Point(cx - gap / 2, botY));
+                out.push(new Point(cx + gap / 2, botY));
+                if (n > 5) out.push(new Point(cx, botY + sp * 0.6));
+                return out;
+            }
+            return gridPositions(cx, cy, n, sp);
+        }
+
+        function rotatePositions(pts, cx, cy, deg) {
+            if (!deg) return pts;
+            const rad = deg * Math.PI / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            return pts.map(p => {
+                const dx = p.x - cx, dy = p.y - cy;
+                return new Point(cx + dx * cos - dy * sin, cy + dx * sin + dy * cos);
+            });
+        }
+
+        function initPositions() {
+            const cx = view.center.x;
+            const cy = view.center.y;
+            const n = config.numCircles;
+            const sp = config.spacing;
+            let pts;
+
+            switch (config.layout) {
+                case 'ring': {
+                    if (n === 2) {
+                        pts = [new Point(cx - sp / 2, cy), new Point(cx + sp / 2, cy)];
+                    } else {
+                        const R = ringRadiusForNeighbors(n, config.neighbors, config.radius);
+                        pts = ringPositions(cx, cy, n, R);
+                    }
+                    break;
+                }
+                case 'grid':
+                    pts = gridPositions(cx, cy, n, sp);
+                    break;
+                case 'line':
+                    pts = linePositions(cx, cy, n, sp);
+                    break;
+                case 'auto':
+                default:
+                    pts = autoPositions(cx, cy, n, sp);
+            }
+
+            positions = rotatePositions(pts, cx, cy, config.rotation);
+        }
+
+        // ---- Weave pattern ----
+        // Build a globally-consistent alternating over/under assignment:
+        // walk around each circle in angular order and alternate over/under
+        // at successive crossings. Parity per-circle is propagated by BFS
+        // across shared crossings so that at any crossing, exactly one
+        // circle is over and the other is under.
+        function computeWeaveOrder(positions, r) {
+            const n = positions.length;
+            const crossings = [];                     // { id, i, j, pt }
+            const perCircle = Array.from({ length: n }, () => []);
+
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const pts = circleIntersections(positions[i], r, positions[j], r);
+                    if (pts.length < 2) continue;
+                    for (let k = 0; k < 2; k++) {
+                        const pt = pts[k];
+                        const id = crossings.length;
+                        crossings.push({ id, i, j, pt });
+                        perCircle[i].push({ id, other: j, angle: Math.atan2(pt.y - positions[i].y, pt.x - positions[i].x) });
+                        perCircle[j].push({ id, other: i, angle: Math.atan2(pt.y - positions[j].y, pt.x - positions[j].x) });
+                    }
+                }
+            }
+
+            // Sort each circle's crossings by angle around its center.
+            for (let i = 0; i < n; i++) {
+                perCircle[i].sort((a, b) => a.angle - b.angle);
+            }
+
+            // For each crossing id, remember its sorted-index on each of the two circles.
+            const idLoc = {};
+            for (let i = 0; i < n; i++) {
+                for (let k = 0; k < perCircle[i].length; k++) {
+                    const id = perCircle[i][k].id;
+                    if (!idLoc[id]) idLoc[id] = {};
+                    idLoc[id][i] = k;
+                }
+            }
+
+            // BFS: starting parity per circle. over_at(circle, k) = (parity[circle] + k) mod 2.
+            // At every crossing, exactly one of (i, j) is over; this constrains parity[j] given parity[i].
+            const parity = new Array(n).fill(-1);
+            for (let start = 0; start < n; start++) {
+                if (parity[start] !== -1) continue;
+                parity[start] = 0;
+                const queue = [start];
+                while (queue.length) {
+                    const i = queue.shift();
+                    for (let k = 0; k < perCircle[i].length; k++) {
+                        const { id, other: j } = perCircle[i][k];
+                        const kJ = idLoc[id][j];
+                        const overI = (parity[i] + k) % 2;
+                        const requiredParityJ = ((1 - overI) - kJ % 2 + 4) % 2;
+                        if (parity[j] === -1) {
+                            parity[j] = requiredParityJ;
+                            queue.push(j);
+                        }
+                        // If already set and conflicting, accept and resolve at render time.
+                    }
+                }
+            }
+
+            // Decide over-circle for each crossing.
+            const overOf = new Array(crossings.length);
+            for (const c of crossings) {
+                const kI = idLoc[c.id][c.i];
+                const kJ = idLoc[c.id][c.j];
+                const overI = (parity[c.i] + kI) % 2;
+                const overJ = (parity[c.j] + kJ) % 2;
+                if (overI === 1 && overJ === 0)      overOf[c.id] = c.i;
+                else if (overJ === 1 && overI === 0) overOf[c.id] = c.j;
+                else                                 overOf[c.id] = (kI % 2 === 0) ? c.i : c.j;
+            }
+
+            return { crossings, overOf };
+        }
+
+        // ---- Render ----
+        function draw() {
+            project.clear();
+
+            const r = config.radius;
+            const sw = config.strokeWidth;
+            const gapMul = config.gap;
+            const bw = config.breakWidth;
+
+            currentBgColor = config.bgColor;
+
+            // Background
+            const bg = new Path.Rectangle(view.bounds);
+            bg.fillColor = config.bgColor;
+
+            // Base layer: full circles
+            const baseGroup = new Group();
+            for (const pos of positions) {
+                const c = new Path.Circle(pos, r);
+                c.strokeColor = config.fgColor;
+                c.strokeWidth = sw;
+                c.fillColor = null;
+                baseGroup.addChild(c);
+            }
+
+            if (!config.weave) return;
+
+            // Globally-consistent over/under per crossing.
+            const { crossings, overOf } = computeWeaveOrder(positions, r);
+
+            // Two passes so over-arcs always sit above all masks, even when
+            // a circle's own break-mask would otherwise erase a neighbor's
+            // over-arc (the source of the muddled look in dense crossings).
+            const maskGroup = new Group();
+            const overGroup = new Group();
+
+            // Mask width: covers under stroke + a visible "gap" controlled by
+            // the gap/break sliders.
+            const maskWidth = sw + sw * Math.max(0.1, gapMul * 0.15 + bw * 0.6);
+
+            for (const c of crossings) {
+                const overIdx = overOf[c.id];
+                const underIdx = (overIdx === c.i) ? c.j : c.i;
+                const overCenter = positions[overIdx];
+                const underCenter = positions[underIdx];
+
+                // Geometry: angular distance on the over circle to clear the
+                // under stroke. The over-circle's distance-from-under-center
+                // changes at rate |d·√(4r²-d²)/(2r)| per radian at the crossing.
+                const dx = overCenter.x - underCenter.x;
+                const dy = overCenter.y - underCenter.y;
+                const dCenters = Math.sqrt(dx * dx + dy * dy);
+                const radicand = Math.max(0, 4 * r * r - dCenters * dCenters);
+                const rate = dCenters * Math.sqrt(radicand) / (2 * r);
+                // Need to gain (sw + maskWidth)/2 in distance so the butt-cap's
+                // perpendicular endpoints (which extend ±maskWidth/2 radially
+                // from the over circle) all land safely outside the under
+                // stroke. Otherwise the cap edge prints a flat line on the
+                // under = squared cut.
+                const exitGain = (sw + maskWidth) / 2;
+                const exitSpan = (rate > 1e-4) ? exitGain / rate : 0.3;
+                // safeSpan: caps land outside the under stroke entirely. Cut on
+                // the under is then bounded by the mask's parallel sides —
+                // offset arcs of the OVER circle, so it curves along it.
+                const safeSpan = Math.min(exitSpan + 0.06, Math.PI / 3);
+
+                const overAngle = Math.atan2(c.pt.y - overCenter.y, c.pt.x - overCenter.x);
+
+                // Mask along the OVER circle. Butt caps so the mask doesn't
+                // protrude tangentially past safeSpan (round caps would print
+                // bg "ticks" on the over circle past the over-arc redraw).
+                const maskPts = makeArc(overCenter, r, overAngle - safeSpan, overAngle + safeSpan, 36);
+                const mask = new Path(maskPts);
+                mask.strokeColor = config.bgColor;
+                mask.strokeWidth = maskWidth;
+                mask.strokeCap = 'butt';
+                maskGroup.addChild(mask);
+
+                // Redraw the over circle's arc on top, marginally wider than
+                // the mask so AA seams stay covered.
+                const overSpan = Math.min(safeSpan + 0.02, Math.PI / 3);
+                const overPts = makeArc(overCenter, r, overAngle - overSpan, overAngle + overSpan, 36);
+                const over = new Path(overPts);
+                over.strokeColor = config.fgColor;
+                over.strokeWidth = sw;
+                over.strokeCap = 'butt';
+                overGroup.addChild(over);
+            }
+        }
+
+        // ---- Interaction ----
+        const tool = new Tool();
+
+        tool.onMouseDown = function(event) {
+            for (let i = positions.length - 1; i >= 0; i--) {
+                if (event.point.getDistance(positions[i]) < config.radius + config.strokeWidth / 2) {
+                    dragIdx = i;
+                    dragOffset = positions[i].subtract(event.point);
+                    return;
+                }
+            }
+        };
+
+        tool.onMouseDrag = function(event) {
+            if (dragIdx !== null) {
+                positions[dragIdx] = event.point.add(dragOffset);
+                draw();
+            }
+        };
+
+        tool.onMouseUp = function() {
+            dragIdx = null;
+        };
+
+        // ---- Controls ----
+        function shouldReinit(prop) {
+            if (prop === 'numCircles' || prop === 'layout' || prop === 'rotation' || prop === 'spacing') return true;
+            if (prop === 'neighbors' || prop === 'radius') return config.layout === 'ring';
+            return false;
+        }
+
+        function bindRange(id, prop, isFloat) {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function() {
+                config[prop] = isFloat ? parseFloat(this.value) : parseInt(this.value);
+                valEl.textContent = this.value;
+                if (prop === 'numCircles') {
+                    clampNeighbors();
+                    syncNeighborsSlider();
+                }
+                if (shouldReinit(prop)) initPositions();
+                draw();
+            });
+        }
+
+        function bindColor(id, prop) {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            el.addEventListener('input', function() {
+                config[prop] = this.value;
+                valEl.textContent = this.value;
+                draw();
+            });
+        }
+
+        function updateWeaveUI() {
+            const wc = document.getElementById('weaveControls');
+            if (config.weave) {
+                wc.classList.remove('disabled');
+            } else {
+                wc.classList.add('disabled');
+            }
+        }
+
+        function updateNeighborsUI() {
+            const ng = document.getElementById('neighborsGroup');
+            if (config.layout === 'ring' && config.numCircles >= 3) {
+                ng.classList.remove('disabled');
+            } else {
+                ng.classList.add('disabled');
+            }
+        }
+
+        function clampNeighbors() {
+            const max = maxNeighbors(config.numCircles);
+            if (config.neighbors > max) config.neighbors = max;
+            if (config.neighbors < 1) config.neighbors = 1;
+        }
+
+        function syncNeighborsSlider() {
+            const max = maxNeighbors(config.numCircles);
+            const el = document.getElementById('neighbors');
+            el.max = max;
+            if (parseInt(el.value) > max) el.value = max;
+            document.getElementById('neighborsVal').textContent = config.neighbors;
+            el.value = config.neighbors;
+        }
+
+        function syncUI() {
+            for (const [id, prop, isFloat] of [
+                ['numCircles', 'numCircles'], ['radius', 'radius'],
+                ['strokeWidth', 'strokeWidth'], ['spacing', 'spacing'],
+                ['rotation', 'rotation'],
+                ['gap', 'gap', true], ['break', 'breakWidth', true]
+            ]) {
+                document.getElementById(id).value = config[prop];
+                document.getElementById(id + 'Val').textContent = config[prop];
+            }
+            for (const [id, prop] of [['bgColor', 'bgColor'], ['fgColor', 'fgColor']]) {
+                document.getElementById(id).value = config[prop];
+                document.getElementById(id + 'Val').textContent = config[prop];
+            }
+            document.getElementById('weave').checked = config.weave;
+            document.getElementById('layout').value = config.layout;
+            clampNeighbors();
+            syncNeighborsSlider();
+            updateWeaveUI();
+            updateNeighborsUI();
+        }
+
+        bindRange('numCircles', 'numCircles');
+        bindRange('neighbors', 'neighbors');
+        bindRange('radius', 'radius');
+        bindRange('strokeWidth', 'strokeWidth');
+        bindRange('spacing', 'spacing');
+        bindRange('rotation', 'rotation');
+        bindRange('gap', 'gap', true);
+        bindRange('break', 'breakWidth', true);
+        bindColor('bgColor', 'bgColor');
+        bindColor('fgColor', 'fgColor');
+
+        document.getElementById('weave').addEventListener('change', function() {
+            config.weave = this.checked;
+            updateWeaveUI();
+            draw();
+        });
+
+        document.getElementById('layout').addEventListener('change', function() {
+            config.layout = this.value;
+            updateNeighborsUI();
+            initPositions();
+            draw();
+        });
+
+        // Reset → first landing-page variant (the new default)
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            const tool = window.LogoTools && window.LogoTools.findBySlug('interlocking-circles');
+            if (tool && tool.variants && tool.variants[0]) pm.applyHash(tool.variants[0]);
+        });
+
+        // ─── Permalink ───
+        const {
+          INT_RANGE, FLOAT_RANGE, COLOR, BOOL, ENUM,
+          WEIGHTED_INT_RANGE, WEIGHTED_FLOAT_RANGE, ENUM_WEIGHTED,
+        } = window.LogoSchema;
+        /* Variant analysis: the aesthetic depends on sp/r ratio (variants
+           cluster at 0.78-1.21). Independent randomization produced either
+           single-blob merges (sp << r) or separated islands (sp >> r).
+           Post-pass couples sp to r so circles always interlock cleanly.
+           br stays near 0 — variants explicitly set br=0 in every case. */
+        const schema = {
+            n:  WEIGHTED_INT_RANGE(2, 15, 2, { rmin: 4, rmax: 7 }),
+            ly: ENUM_WEIGHTED([
+              ['ring', 5], ['auto', 2], ['grid', 1], ['line', 0.3],
+            ], 'auto'),
+            /* nb controls ring-layout density. Variants used 1 (3/4) or 2 (1/4)
+               only — never higher. Higher values produce dense webs that
+               don't match the curated petal-arrangement aesthetic. */
+            nb: {
+              ...INT_RANGE(1, 7, 1),
+              randomize: (rng) => rng() < 0.8 ? 1 : 2,
+            },
+            r:  WEIGHTED_INT_RANGE(30, 300, 150, { rmin: 75, rmax: 160 }),
+            sw: WEIGHTED_INT_RANGE(2, 80, 28, { rmin: 14, rmax: 60 }),
+            /* sp shuffle value is overwritten in post — kept here only so
+               the schema iteration phase consumes 1 rng call (preserves
+               the rng phase for downstream fields). */
+            sp: {
+              ...WEIGHTED_INT_RANGE(10, 400, 110, { rmin: 60, rmax: 200 }),
+              post(state, rng) {
+                const r = (typeof state.r === 'number') ? state.r : 100;
+                const ratio = 0.75 + rng() * 0.55; // [0.75, 1.30)
+                return Math.max(10, Math.min(400, Math.round(r * ratio)));
+              },
+            },
+            ro: INT_RANGE(-180, 180, 0),
+            /* Every variant ships with weave ON (default). The 50/50 BOOL
+               randomizer was flipping it off half the time → solid filled
+               circles merge into one blob. Bias heavy toward true. */
+            wv: { ...BOOL(true), randomize: (rng) => rng() < 0.9 },
+            gp: WEIGHTED_FLOAT_RANGE(0.5, 4, 1.5, 2, { rmin: 0.5, rmax: 3.2 }),
+            br: WEIGHTED_FLOAT_RANGE(0, 1.5, 0.7, 2, { rmin: 0, rmax: 0.1 }),
+            bg: COLOR('#cc0000'),
+            fg: COLOR('#f0f0f0'),
+        };
+
+        function getPermalinkState() {
+            return {
+                n: config.numCircles, ly: config.layout, nb: config.neighbors,
+                r: config.radius, sw: config.strokeWidth, sp: config.spacing,
+                ro: config.rotation, wv: config.weave, gp: config.gap,
+                br: config.breakWidth, bg: config.bgColor, fg: config.fgColor,
+            };
+        }
+        function applyPermalinkState(s) {
+            config.numCircles = s.n; config.layout = s.ly; config.neighbors = s.nb;
+            config.radius = s.r; config.strokeWidth = s.sw;
+            config.spacing = s.sp; config.rotation = s.ro;
+            config.weave = s.wv; config.gap = s.gp;
+            config.breakWidth = s.br; config.bgColor = s.bg; config.fgColor = s.fg;
+            syncUI();
+            initPositions();
+            draw();
+        }
+        const pm = new window.PermalinkManager({
+            toolName: 'interlocking-circles',
+            schema, getState: getPermalinkState, applyState: applyPermalinkState,
+        });
+        ['numCircles', 'neighbors', 'radius', 'strokeWidth', 'spacing', 'rotation',
+         'gap', 'break', 'bgColor', 'fgColor', 'weave', 'layout'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const evt = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+            el.addEventListener(evt, () => pm.update());
+        });
+        document.getElementById('resetBtn').addEventListener('click', () => pm.update());
+
+        // Export
+        new ToolExporter({
+            toolName: 'interlocking-circles',
+            getCanvas: () => document.querySelector('canvas'),
+            getSVG: () => {
+                const svgEl = paper.project.exportSVG({ asString: false });
+                const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                bg.setAttribute('width', '100%');
+                bg.setAttribute('height', '100%');
+                bg.setAttribute('fill', currentBgColor);
+                svgEl.insertBefore(bg, svgEl.firstChild);
+                return new XMLSerializer().serializeToString(svgEl);
+            },
+            getBackgroundColor: () => currentBgColor,
+            paperProject: paper.project,
+            baseWidth: 800,
+            baseHeight: 800,
+            getPermalink: () => pm.getPermalink(),
+            flushPermalink: () => pm.flush(),
+        });
+
+        // Resize
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            initPositions();
+            draw();
+        });
+
+        // Go
+        initPositions();
+        draw();
+
+        // Paper.js needs a re-render after layout settles
+        requestAnimationFrame(function() {
+            resizeCanvas();
+            initPositions();
+            draw();
+            pm.decode();
+            pm.setupPresets();
+        });
+    </script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

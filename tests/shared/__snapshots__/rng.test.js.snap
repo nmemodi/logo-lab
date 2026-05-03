@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rng.mulberry32 > algorithm is pinned — first 5 values for seed=42 (canary) 1`] = `
+[
+  "0.6011037519",
+  "0.4482905590",
+  "0.8524657935",
+  "0.6697340414",
+  "0.1748138987",
+]
+`;

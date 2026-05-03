@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo Stripes — Logo Lab</title>
+<meta name="description" content="Nested letters of horizontal stripes that thin out as they grow. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+<meta property="og:title" content="Echo Stripes — Logo Lab">
+<meta property="og:description" content="Nested letters of horizontal stripes that thin out as they grow.">
+<meta property="og:image" content="https://natemodi.com/logo/echo-stripes/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Echo Stripes logo variations from Logo Lab.">
+<meta property="og:url" content="https://natemodi.com/logo/echo-stripes/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Echo Stripes — Logo Lab">
+<meta name="twitter:description" content="Nested letters of horizontal stripes that thin out as they grow.">
+<meta name="twitter:image" content="https://natemodi.com/logo/echo-stripes/og-image.png">
+<meta name="twitter:image:alt" content="Four Echo Stripes logo variations from Logo Lab.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/shared/tools-shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Audiowide&family=Baumans&family=Black+Ops+One&family=Electrolize&family=Exo+2:wght@100..900&family=Michroma&family=Orbitron:wght@400..900&family=Rajdhani:wght@300..700&family=Russo+One&family=Share+Tech&display=swap" rel="stylesheet">
+<style>
+  .char-input {
+    font-size: 1.5rem !important;
+    text-align: center;
+    font-weight: 700;
+    padding: 4px 10px !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="tool-sidebar">
+  <div class="tool-header">
+    <h1 class="tool-header__title">Echo Stripes</h1>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Character</div>
+    <input type="text" id="char" value="B" maxlength="2" class="char-input">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Typography</div>
+    <label>Font</label>
+    <select id="font">
+      <option value="Arial Black" selected>Arial Black</option>
+      <option value="Impact">Impact</option>
+      <option value="Orbitron">Orbitron</option>
+      <option value="Audiowide">Audiowide</option>
+      <option value="Russo One">Russo One</option>
+      <option value="Exo 2">Exo 2</option>
+      <option value="Black Ops One">Black Ops One</option>
+      <option value="Rajdhani">Rajdhani</option>
+      <option value="Share Tech">Share Tech</option>
+      <option value="Baumans">Baumans</option>
+      <option value="Electrolize">Electrolize</option>
+      <option value="Michroma">Michroma</option>
+      <option value="Aldrich">Aldrich</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Courier New">Courier New</option>
+    </select>
+    <label>Weight</label>
+    <select id="weight">
+      <option value="400">Regular</option>
+      <option value="700">Bold</option>
+      <option value="900" selected>Black</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Echoes</div>
+    <label>Anchor</label>
+    <select id="anchor">
+      <option value="bl" selected>Bottom-left</option>
+      <option value="br">Bottom-right</option>
+      <option value="tl">Top-left</option>
+      <option value="tr">Top-right</option>
+      <option value="c">Center</option>
+    </select>
+    <label>Levels <span class="control-val" id="levelsVal">3</span></label>
+    <input type="range" id="levels" min="1" max="5" value="3">
+    <label>Outer growth <span class="control-val" id="growthVal">1.45</span>×</label>
+    <input type="range" id="growth" min="1.05" max="2.0" step="0.01" value="1.45">
+    <label>Thinning ratio <span class="control-val" id="ratioVal">0.18</span></label>
+    <input type="range" id="ratio" min="0.05" max="0.85" step="0.01" value="0.18">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Stripes</div>
+    <label>Count <span class="control-val" id="stripesVal">10</span> in inner letter</label>
+    <input type="range" id="stripes" min="4" max="30" value="10">
+    <label>Inner thickness <span class="control-val" id="thicknessVal">60</span>%</label>
+    <input type="range" id="thickness" min="20" max="90" value="60">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Color</div>
+    <label>Background</label>
+    <div class="color-row">
+      <input type="color" id="bgColor" value="#fdfdfc">
+      <span class="color-hex" id="bgColorVal">#fdfdfc</span>
+    </div>
+    <label>Stripes</label>
+    <div class="color-row">
+      <input type="color" id="lineColor" value="#111111">
+      <span class="color-hex" id="lineColorVal">#111111</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Canvas</div>
+    <label>Size <span class="control-val" id="sizeVal">800</span></label>
+    <input type="range" id="size" min="400" max="2400" step="100" value="800">
+  </div>
+
+  <div class="control-group">
+    <label>Presets</label>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="control-group">
+    <button class="btn btn-primary btn-full btn-export" id="openExport">Export</button>
+  </div>
+</div>
+
+<div class="tool-canvas tool-canvas--centered">
+  <canvas id="canvas" width="800" height="800"></canvas>
+</div>
+
+<script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+<script src="/shared/rng.js"></script>
+<script src="/shared/permalink.js"></script>
+<script src="/shared/tools-export.js"></script>
+<script src="/shared/tools-registry.js"></script>
+<script src="/shared/font-detect.js"></script>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const charInput    = document.getElementById('char');
+const fontSelect   = document.getElementById('font');
+const weightSelect = document.getElementById('weight');
+const anchorSelect = document.getElementById('anchor');
+const levelsEl     = document.getElementById('levels');
+const growthEl     = document.getElementById('growth');
+const ratioEl      = document.getElementById('ratio');
+const stripesEl    = document.getElementById('stripes');
+const thicknessEl  = document.getElementById('thickness');
+const sizeEl       = document.getElementById('size');
+const bgColorEl    = document.getElementById('bgColor');
+const lineColorEl  = document.getElementById('lineColor');
+
+const allInputs = [charInput, fontSelect, weightSelect, anchorSelect, levelsEl, growthEl, ratioEl,
+                   stripesEl, thicknessEl, sizeEl, bgColorEl, lineColorEl];
+
+function updateLabels() {
+  document.getElementById('levelsVal').textContent = levelsEl.value;
+  document.getElementById('growthVal').textContent = parseFloat(growthEl.value).toFixed(2);
+  document.getElementById('ratioVal').textContent = parseFloat(ratioEl.value).toFixed(2);
+  document.getElementById('stripesVal').textContent = stripesEl.value;
+  document.getElementById('thicknessVal').textContent = thicknessEl.value;
+  document.getElementById('sizeVal').textContent = sizeEl.value;
+  document.getElementById('bgColorVal').textContent = bgColorEl.value;
+  document.getElementById('lineColorVal').textContent = lineColorEl.value;
+}
+
+function measureChar(c, font, weight, fontSize, m_ctx) {
+  const tctx = m_ctx || ctx;
+  tctx.font = `${weight} ${fontSize}px "${font}"`;
+  tctx.textBaseline = 'alphabetic';
+  const m = tctx.measureText(c);
+  if (m.actualBoundingBoxLeft !== undefined) {
+    return {
+      w: m.actualBoundingBoxLeft + m.actualBoundingBoxRight,
+      h: m.actualBoundingBoxAscent + m.actualBoundingBoxDescent,
+      l: m.actualBoundingBoxLeft,
+      a: m.actualBoundingBoxAscent
+    };
+  }
+  return { w: m.width, h: fontSize * 0.8, l: 0, a: fontSize * 0.75 };
+}
+
+// Outermost letter must fit canvas. Returns the font size for the OUTERMOST level.
+function computeOuterFontSize(char, font, weight, canvasSize) {
+  const ref = 500;
+  const m = measureChar(char, font, weight, ref);
+  if (m.w < 1 || m.h < 1) return 0;
+  const padding = canvasSize * 0.06;
+  const avail = canvasSize - padding * 2;
+  return Math.min(avail / m.w, avail / m.h) * ref;
+}
+
+// Returns the canvas point (px, py) where every letter's chosen corner sits.
+// All nested letters share this anchor point so they cascade out from it.
+function anchorPoint(anchor, canvasSize) {
+  const p = canvasSize * 0.06;
+  switch (anchor) {
+    case 'br': return { px: canvasSize - p, py: canvasSize - p };
+    case 'tl': return { px: p,              py: p };
+    case 'tr': return { px: canvasSize - p, py: p };
+    case 'c':  return { px: canvasSize / 2, py: canvasSize / 2 };
+    case 'bl':
+    default:   return { px: p,              py: canvasSize - p };
+  }
+}
+
+// Compute fillText (drawX, drawY) so the letter's bbox corner (per anchor) lands at (px, py).
+function placeLetter(anchor, m, px, py) {
+  switch (anchor) {
+    case 'br': return { drawX: px - m.w + m.l, drawY: py - (m.h - m.a) };
+    case 'tl': return { drawX: px + m.l,        drawY: py + m.a };
+    case 'tr': return { drawX: px - m.w + m.l,  drawY: py + m.a };
+    case 'c':  return { drawX: px - m.w / 2 + m.l, drawY: py - m.h / 2 + m.a };
+    case 'bl':
+    default:   return { drawX: px + m.l,        drawY: py - (m.h - m.a) };
+  }
+}
+
+function renderToCtx(targetCtx, size, opts = {}) {
+  const rawChar    = charInput.value || 'B';
+  const char       = rawChar.length > 1 ? rawChar.slice(-1) : rawChar;
+  const font       = fontSelect.value;
+  const weight     = weightSelect.value;
+  const anchor     = anchorSelect.value;
+  const levels     = parseInt(levelsEl.value);
+  const growth     = parseFloat(growthEl.value);
+  const ratio      = parseFloat(ratioEl.value);
+  const stripes    = parseInt(stripesEl.value);
+  const thickness  = parseFloat(thicknessEl.value);
+  const bgColor    = bgColorEl.value;
+  const lineColor  = lineColorEl.value;
+
+  if (!opts.transparent) {
+    targetCtx.fillStyle = bgColor;
+    targetCtx.fillRect(0, 0, size, size);
+  }
+  if (!char.trim()) return;
+
+  const outerFontSize = computeOuterFontSize(char, font, weight, size);
+  if (!outerFontSize) return;
+
+  const { px, py } = anchorPoint(anchor, size);
+
+  // Anchor the stripe grid to the INNER letter's top edge. The same step continues
+  // upward (and downward, depending on anchor) so thin outer trails sit on the
+  // same vertical column as the thick inner bars — the systematic relationship in
+  // the source mark.
+  const innerScale  = Math.pow(growth, -(levels - 1));
+  const innerSize   = outerFontSize * innerScale;
+  const innerM      = measureChar(char, font, weight, innerSize, targetCtx);
+  const innerPlace  = placeLetter(anchor, innerM, px, py);
+  const innerTopY   = innerPlace.drawY - innerM.a;
+  const stripeStep  = innerM.h / stripes;
+  const innerStripeT = stripeStep * (thickness / 100);  // bar height in inner letter
+
+  // y_tops aligned to inner letter's top edge, extending across the whole canvas
+  const yTops = [];
+  for (let yt = innerTopY; yt < size + stripeStep; yt += stripeStep) yTops.push(yt);
+  for (let yt = innerTopY - stripeStep; yt > -stripeStep * 2; yt -= stripeStep) yTops.push(yt);
+
+  // Outer-most level paints first; inner levels overpaint within their letter shape.
+  // Innermost (lvl=0) gets the thickest stripes; each outer ring thins by `ratio`.
+  for (let lvl = levels - 1; lvl >= 0; lvl--) {
+    const scale = Math.pow(growth, -(levels - 1 - lvl));
+    const fontSize = outerFontSize * scale;
+    const stripeT = innerStripeT * Math.pow(ratio, lvl);
+
+    // Position letter so its anchor corner sits at the shared canvas anchor
+    const m = measureChar(char, font, weight, fontSize, targetCtx);
+    const { drawX, drawY } = placeLetter(anchor, m, px, py);
+
+    // Render stripes onto an offscreen, then mask with the letter shape
+    const off = document.createElement('canvas');
+    off.width = size; off.height = size;
+    const octx = off.getContext('2d');
+
+    octx.fillStyle = lineColor;
+    for (const yt of yTops) {
+      octx.fillRect(0, yt, size, stripeT);
+    }
+
+    octx.globalCompositeOperation = 'destination-in';
+    octx.fillStyle = '#000';
+    octx.font = `${weight} ${fontSize}px "${font}"`;
+    octx.textBaseline = 'alphabetic';
+    octx.fillText(char, drawX, drawY);
+
+    targetCtx.drawImage(off, 0, 0);
+  }
+}
+
+function render() {
+  const size = parseInt(sizeEl.value);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  const wrap = document.querySelector('.tool-canvas');
+  const maxD = Math.min(wrap.clientWidth, wrap.clientHeight) * 0.9;
+  canvas.style.width = maxD + 'px';
+  canvas.style.height = maxD + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  renderToCtx(ctx, size);
+}
+
+// ─── SVG export ───
+function escapeXml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function generateSVG() {
+  const rawChar    = charInput.value || 'B';
+  const char       = rawChar.length > 1 ? rawChar.slice(-1) : rawChar;
+  const font       = fontSelect.value;
+  const weight     = weightSelect.value;
+  const anchor     = anchorSelect.value;
+  const levels     = parseInt(levelsEl.value);
+  const growth     = parseFloat(growthEl.value);
+  const ratio      = parseFloat(ratioEl.value);
+  const stripes    = parseInt(stripesEl.value);
+  const thickness  = parseFloat(thicknessEl.value);
+  const bgColor    = bgColorEl.value;
+  const lineColor  = lineColorEl.value;
+  const size       = parseInt(sizeEl.value);
+
+  const outerFontSize = computeOuterFontSize(char, font, weight, size);
+  if (!outerFontSize) return '';
+
+  const { px, py } = anchorPoint(anchor, size);
+
+  const innerScale  = Math.pow(growth, -(levels - 1));
+  const innerSize   = outerFontSize * innerScale;
+  const innerM      = measureChar(char, font, weight, innerSize);
+  const innerPlace  = placeLetter(anchor, innerM, px, py);
+  const innerTopY   = innerPlace.drawY - innerM.a;
+  const stripeStep  = innerM.h / stripes;
+  const innerStripeT = stripeStep * (thickness / 100);
+
+  const yTops = [];
+  for (let yt = innerTopY; yt < size + stripeStep; yt += stripeStep) yTops.push(yt);
+  for (let yt = innerTopY - stripeStep; yt > -stripeStep * 2; yt -= stripeStep) yTops.push(yt);
+
+  const escaped = escapeXml(char);
+  const fontUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@${weight}&amp;display=swap`;
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">\n`;
+  svg += `<defs><style>@import url('${fontUrl}');</style>\n`;
+
+  for (let lvl = 0; lvl < levels; lvl++) {
+    const scale = Math.pow(growth, -(levels - 1 - lvl));
+    const fontSize = outerFontSize * scale;
+    const m = measureChar(char, font, weight, fontSize);
+    const { drawX, drawY } = placeLetter(anchor, m, px, py);
+    svg += `<clipPath id="es-lvl${lvl}"><text x="${drawX.toFixed(2)}" y="${drawY.toFixed(2)}" font-family="'${font}'" font-weight="${weight}" font-size="${fontSize.toFixed(2)}px">${escaped}</text></clipPath>\n`;
+  }
+  svg += `</defs>\n`;
+  svg += `<rect width="${size}" height="${size}" fill="${bgColor}"/>\n`;
+
+  for (let lvl = levels - 1; lvl >= 0; lvl--) {
+    const stripeT = innerStripeT * Math.pow(ratio, lvl);
+    svg += `<g clip-path="url(#es-lvl${lvl})">\n`;
+    for (const yt of yTops) {
+      svg += `<rect x="0" y="${yt.toFixed(2)}" width="${size}" height="${stripeT.toFixed(2)}" fill="${lineColor}"/>\n`;
+    }
+    svg += `</g>\n`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+// ─── Permalink ───
+const {
+  INT_RANGE, FLOAT_RANGE, COLOR, ENUM, TEXT,
+  WEIGHTED_INT_RANGE, WEIGHTED_FLOAT_RANGE, ENUM_WEIGHTED,
+} = window.LogoSchema;
+/* Variants: an='c' in 3/3 explicit (heavy), gr ≥ 1.47 (high),
+   tk ≥ 65 (always thick), display fonts dominate. Off-center anchors
+   (bl/br/tl/tr) made the echoes feel unbalanced for logos. */
+const pschema = {
+  ch: TEXT({ charset: /^.{1,2}$/u, maxLen: 2, def: 'B' }),
+  f:  ENUM_WEIGHTED([
+    ['Arial Black', 4], ['Impact', 3], ['Audiowide', 3], ['Russo One', 3],
+    ['Orbitron', 2], ['Black Ops One', 2], ['Exo 2', 1], ['Rajdhani', 1],
+    ['Michroma', 1], ['Baumans', 1], ['Georgia', 0.5],
+    ['Share Tech', 0.5], ['Aldrich', 0.3], ['Electrolize', 0.3], ['Courier New', 0.2],
+  ], 'Arial Black'),
+  fw: ENUM_WEIGHTED([['900', 5], ['700', 2], ['400', 0.5]], '900'),
+  an: ENUM_WEIGHTED([
+    ['c', 6], ['bl', 1], ['br', 1], ['tl', 0.5], ['tr', 0.5],
+  ], 'bl'),
+  lv: WEIGHTED_INT_RANGE(1, 5, 3, { rmin: 1, rmax: 4 }),
+  gr: WEIGHTED_FLOAT_RANGE(1.05, 2.0, 1.45, 2, { rmin: 1.4, rmax: 2.0 }),
+  rt: WEIGHTED_FLOAT_RANGE(0.05, 0.85, 0.18, 2, { rmin: 0.15, rmax: 0.65 }),
+  st: WEIGHTED_INT_RANGE(4, 30, 10, { rmin: 8, rmax: 22 }),
+  tk: WEIGHTED_INT_RANGE(20, 90, 60, { rmin: 60, rmax: 90, pow: 0.7 }),
+  sz: WEIGHTED_INT_RANGE(400, 2400, 800, { rmin: 500, rmax: 1100 }),
+  bg: COLOR('#fdfdfc'),
+  fg: COLOR('#111111'),
+};
+
+function getPermalinkState() {
+  return {
+    ch: charInput.value || 'B', f: fontSelect.value, fw: weightSelect.value,
+    an: anchorSelect.value,
+    lv: +levelsEl.value, gr: +growthEl.value, rt: +ratioEl.value,
+    st: +stripesEl.value, tk: +thicknessEl.value, sz: +sizeEl.value,
+    bg: bgColorEl.value, fg: lineColorEl.value,
+  };
+}
+function applyPermalinkState(s) {
+  charInput.value = s.ch; fontSelect.value = s.f; weightSelect.value = s.fw;
+  anchorSelect.value = s.an;
+  levelsEl.value = s.lv; growthEl.value = s.gr; ratioEl.value = s.rt;
+  stripesEl.value = s.st; thicknessEl.value = s.tk; sizeEl.value = s.sz;
+  bgColorEl.value = s.bg; lineColorEl.value = s.fg;
+  updateLabels();
+  render();
+}
+const pm = new window.PermalinkManager({
+  toolName: 'echo-stripes',
+  schema: pschema, getState: getPermalinkState, applyState: applyPermalinkState,
+});
+
+new ToolExporter({
+  toolName: 'echo-stripes',
+  getCanvas: () => canvas,
+  getSVG: () => generateSVG(),
+  renderToCanvas: (exportCtx, w, h, { transparent }) => {
+    renderToCtx(exportCtx, w, { transparent });
+  },
+  getBackgroundColor: () => bgColorEl.value,
+  baseWidth: parseInt(sizeEl.value),
+  baseHeight: parseInt(sizeEl.value),
+  getPermalink: () => pm.getPermalink(),
+  flushPermalink: () => pm.flush(),
+});
+
+allInputs.forEach(el => {
+  el.addEventListener('input', () => { updateLabels(); render(); pm.update(); });
+});
+
+window.addEventListener('resize', render);
+[fontSelect, weightSelect, anchorSelect].forEach(el => {
+  el.addEventListener('change', () => pm.update());
+});
+
+charInput.addEventListener('focus', () => charInput.select());
+charInput.addEventListener('input', () => {
+  if (charInput.value.length > 1) charInput.value = charInput.value.slice(-1);
+});
+
+updateLabels();
+const WEB_FONT_CANDIDATES = ['Aldrich','Audiowide','Baumans','Black Ops One','Electrolize','Exo 2','Michroma','Orbitron','Rajdhani','Russo One','Share Tech'];
+const FONT_WEIGHTS = ['400', '700', '900'];
+window.FontDetect.loadFonts(WEB_FONT_CANDIDATES, FONT_WEIGHTS)
+  .then(() => { render(); pm.decode(); pm.setupPresets(); });
+</script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

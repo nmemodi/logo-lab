@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sliced Shapes — Logo Lab</title>
+<meta name="description" content="Primitives cut by negative arcs to reveal the shape behind. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+<meta property="og:title" content="Sliced Shapes — Logo Lab">
+<meta property="og:description" content="Primitives cut by negative arcs to reveal the shape behind.">
+<meta property="og:image" content="https://natemodi.com/logo/sliced-shapes/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Sliced Shapes logo variations from Logo Lab.">
+<meta property="og:url" content="https://natemodi.com/logo/sliced-shapes/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sliced Shapes — Logo Lab">
+<meta name="twitter:description" content="Primitives cut by negative arcs to reveal the shape behind.">
+<meta name="twitter:image" content="https://natemodi.com/logo/sliced-shapes/og-image.png">
+<meta name="twitter:image:alt" content="Four Sliced Shapes logo variations from Logo Lab.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/shared/tools-shared.css">
+<style>
+    /* Tool-specific overrides only */
+    select {
+        width: 100%;
+        padding: 6px 8px;
+        font-size: var(--text-xs);
+        background: var(--color-surface);
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        outline: none;
+        cursor: pointer;
+    }
+
+    .shape-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 3px;
+    }
+
+    .shape-btn {
+        aspect-ratio: 1;
+        background: var(--color-bg-elevated);
+        border: 2px solid transparent;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: all var(--ease-default);
+    }
+
+    .shape-btn:hover { background: var(--color-bg-hover); }
+    .shape-btn.active { border-color: var(--color-accent); background: #2a2020; }
+
+    .shape-btn canvas {
+        width: 65%;
+        height: 65%;
+        pointer-events: none;
+    }
+</style>
+</head>
+<body>
+    <div class="tool-sidebar">
+        <div class="tool-header">
+            <h1 class="tool-header__title">Sliced Shapes</h1>
+        </div>
+        <p class="tool-hint">Shapes bisected by curved lines at varying angles. Adjust controls to explore.</p>
+
+        <div class="control-group">
+            <div class="section-label">Shape</div>
+            <div class="shape-grid" id="shapeGrid"></div>
+            <label>Count <span class="val" id="countVal">3</span></label>
+            <input type="range" id="count" min="1" max="12" value="3" step="1">
+            <label>Size <span class="val" id="sizeVal">100</span></label>
+            <input type="range" id="size" min="30" max="250" value="100">
+            <label>Spacing <span class="val" id="spacingVal">220</span></label>
+            <input type="range" id="spacing" min="40" max="400" value="220">
+        </div>
+
+        <div class="control-group">
+            <div class="section-label">Slice</div>
+            <label>Curve Type</label>
+            <select id="curveType">
+                <option value="arc" selected>Arc</option>
+                <option value="sine">Sine Wave</option>
+                <option value="straight">Straight</option>
+                <option value="s-curve">S-Curve</option>
+                <option value="zigzag">Zigzag</option>
+            </select>
+            <label>Curvature <span class="val" id="curvatureVal">0.35</span></label>
+            <input type="range" id="curvature" min="0" max="1" value="0.35" step="0.01">
+            <label>Base Angle <span class="val" id="baseAngleVal">0</span>&deg;</label>
+            <input type="range" id="baseAngle" min="-180" max="180" value="0" step="1">
+            <label>Angle Spread <span class="val" id="angleSpreadVal">25</span>&deg;</label>
+            <input type="range" id="angleSpread" min="0" max="90" value="25" step="1">
+            <label>Gap Width <span class="val" id="gapWidthVal">8</span></label>
+            <input type="range" id="gapWidth" min="1" max="40" value="8" step="0.5">
+            <label>Line Width <span class="val" id="lineWidthVal">0</span></label>
+            <input type="range" id="lineWidth" min="0" max="8" value="0" step="0.5">
+            <label>Taper <span class="val" id="taperVal">0</span></label>
+            <input type="range" id="taper" min="0" max="1" value="0" step="0.01">
+            <label>Offset <span class="val" id="sliceOffsetVal">0</span></label>
+            <input type="range" id="sliceOffset" min="-0.5" max="0.5" value="0" step="0.01">
+        </div>
+
+        <div class="control-group">
+            <div class="section-label">Color</div>
+            <label>Background</label>
+            <div class="color-row">
+                <input type="color" id="bgColor" value="#c8c8c8">
+                <span class="color-hex" id="bgColorVal">#c8c8c8</span>
+            </div>
+            <label>Shape Fill</label>
+            <div class="color-row">
+                <input type="color" id="fillColor" value="#2a2a2a">
+                <span class="color-hex" id="fillColorVal">#2a2a2a</span>
+            </div>
+            <label>Line</label>
+            <div class="color-row">
+                <input type="color" id="lineColor" value="#000000">
+                <span class="color-hex" id="lineColorVal">#000000</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Presets</label>
+            <div class="presets" id="presets"></div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="randomBtn">Randomize</button>
+            <button class="btn btn-primary btn-export" id="openExport">Export</button>
+        </div>
+    </div>
+
+    <div class="tool-canvas tool-canvas--fill">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+    <script src="/shared/rng.js"></script>
+    <script src="/shared/permalink.js"></script>
+    <script src="/shared/tools-export.js"></script>
+    <script src="/shared/tools-registry.js"></script>
+    <script>
+const canvasEl = document.getElementById('canvas');
+const ctx = canvasEl.getContext('2d');
+const wrap = document.querySelector('.tool-canvas');
+
+// ---- State ----
+const S = {
+    count: 3,
+    shape: 'circle',
+    size: 100,
+    spacing: 220,
+    curveType: 'arc',
+    baseAngle: 0,
+    angleSpread: 25,
+    curvature: 0.35,
+    gapWidth: 8,
+    taper: 0,
+    sliceOffset: 0,
+    lineWidth: 0,
+    bgColor: '#c8c8c8',
+    fillColor: '#2a2a2a',
+    lineColor: '#000000',
+};
+
+// ---- Resize ----
+const dpr = window.devicePixelRatio || 1;
+function resize() {
+    canvasEl.width = wrap.clientWidth * dpr;
+    canvasEl.height = wrap.clientHeight * dpr;
+    canvasEl.style.width = wrap.clientWidth + 'px';
+    canvasEl.style.height = wrap.clientHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+}
+window.addEventListener('resize', resize);
+
+// ---- Shape paths (return Path2D in local coords centered at 0,0) ----
+function shapePath(type, r) {
+    const p = new Path2D();
+    switch (type) {
+        case 'circle':
+            p.arc(0, 0, r, 0, Math.PI * 2);
+            break;
+        case 'square':
+            p.rect(-r, -r, r * 2, r * 2);
+            break;
+        case 'rounded-square': {
+            const cr = r * 0.2;
+            p.moveTo(-r + cr, -r);
+            p.lineTo(r - cr, -r);
+            p.quadraticCurveTo(r, -r, r, -r + cr);
+            p.lineTo(r, r - cr);
+            p.quadraticCurveTo(r, r, r - cr, r);
+            p.lineTo(-r + cr, r);
+            p.quadraticCurveTo(-r, r, -r, r - cr);
+            p.lineTo(-r, -r + cr);
+            p.quadraticCurveTo(-r, -r, -r + cr, -r);
+            break;
+        }
+        case 'diamond':
+            p.moveTo(0, -r);
+            p.lineTo(r, 0);
+            p.lineTo(0, r);
+            p.lineTo(-r, 0);
+            p.closePath();
+            break;
+        case 'triangle':
+            polygon(p, 3, r, -Math.PI / 2);
+            break;
+        case 'inverted-triangle':
+            polygon(p, 3, r, Math.PI / 2);
+            break;
+        case 'pentagon':
+            polygon(p, 5, r, -Math.PI / 2);
+            break;
+        case 'hexagon':
+            polygon(p, 6, r, 0);
+            break;
+        case 'heptagon':
+            polygon(p, 7, r, -Math.PI / 2);
+            break;
+        case 'octagon':
+            polygon(p, 8, r, Math.PI / 8);
+            break;
+        case 'star-4':
+            star(p, 4, r, r * 0.45);
+            break;
+        case 'star-5':
+            star(p, 5, r, r * 0.45);
+            break;
+        case 'star-6':
+            star(p, 6, r, r * 0.5);
+            break;
+        case 'cross': {
+            const a = r * 0.35;
+            p.moveTo(-a, -r); p.lineTo(a, -r); p.lineTo(a, -a);
+            p.lineTo(r, -a); p.lineTo(r, a); p.lineTo(a, a);
+            p.lineTo(a, r); p.lineTo(-a, r); p.lineTo(-a, a);
+            p.lineTo(-r, a); p.lineTo(-r, -a); p.lineTo(-a, -a);
+            p.closePath();
+            break;
+        }
+        case 'semicircle':
+            p.arc(0, 0, r, Math.PI, 0);
+            p.closePath();
+            break;
+        case 'oval':
+            p.ellipse(0, 0, r, r * 0.7, 0, 0, Math.PI * 2);
+            break;
+        case 'teardrop':
+            p.moveTo(0, -r);
+            p.bezierCurveTo(r * 0.6, -r, r, -r * 0.4, r, 0);
+            p.arc(0, 0, r, 0, Math.PI);
+            p.bezierCurveTo(-r, -r * 0.4, -r * 0.6, -r, 0, -r);
+            break;
+        case 'shield':
+            p.moveTo(-r, -r);
+            p.lineTo(r, -r);
+            p.lineTo(r, r * 0.2);
+            p.quadraticCurveTo(r, r * 0.7, 0, r);
+            p.quadraticCurveTo(-r, r * 0.7, -r, r * 0.2);
+            p.closePath();
+            break;
+        default:
+            p.arc(0, 0, r, 0, Math.PI * 2);
+    }
+    return p;
+}
+
+function polygon(p, n, r, startAngle) {
+    for (let i = 0; i <= n; i++) {
+        const a = startAngle + (i / n) * Math.PI * 2;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) p.moveTo(x, y);
+        else p.lineTo(x, y);
+    }
+    p.closePath();
+}
+
+function star(p, points, outerR, innerR) {
+    const total = points * 2;
+    for (let i = 0; i <= total; i++) {
+        const a = -Math.PI / 2 + (i / total) * Math.PI * 2;
+        const r = i % 2 === 0 ? outerR : innerR;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) p.moveTo(x, y);
+        else p.lineTo(x, y);
+    }
+    p.closePath();
+}
+
+// ---- Slice curve generation ----
+function sliceCurve(type, extent, curvature, offset, numPoints) {
+    numPoints = numPoints || 80;
+    const pts = [];
+    const amp = extent * curvature;
+    const off = offset * extent;
+
+    for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints;
+        const x = -extent + t * 2 * extent;
+        let y = off;
+
+        switch (type) {
+            case 'arc':
+                y += amp * (1 - (2 * t - 1) * (2 * t - 1));
+                break;
+            case 'sine':
+                y += amp * Math.sin(t * Math.PI);
+                break;
+            case 'straight':
+                break;
+            case 's-curve':
+                y += amp * Math.sin(t * Math.PI * 2 - Math.PI);
+                break;
+            case 'zigzag': {
+                const zt = (t * 4) % 1;
+                const seg = Math.floor(t * 4);
+                y += amp * ((seg % 2 === 0) ? zt : 1 - zt) * (seg < 2 ? 1 : -1);
+                if (curvature < 0.01) y = off;
+                break;
+            }
+        }
+        pts.push({ x, y });
+    }
+    return pts;
+}
+
+// ---- Draw ----
+function draw() {
+    const W = wrap.clientWidth;
+    const H = wrap.clientHeight;
+
+    ctx.fillStyle = S.bgColor;
+    ctx.fillRect(0, 0, W, H);
+
+    const n = S.count;
+    const r = S.size;
+    const sp = S.spacing;
+    const totalW = (n - 1) * sp;
+    const startX = W / 2 - totalW / 2;
+    const cy = H / 2;
+
+    for (let i = 0; i < n; i++) {
+        const cx = startX + i * sp;
+        const angleDeg = S.baseAngle + (n > 1
+            ? (i - (n - 1) / 2) * (S.angleSpread * 2 / Math.max(n - 1, 1))
+            : 0);
+        const angle = angleDeg * Math.PI / 180;
+
+        drawSlicedShape(ctx, cx, cy, r, angle, i, n);
+    }
+}
+
+function drawSlicedShape(drawCtx, cx, cy, r, angle, idx, total) {
+    const extent = r * 1.5;
+    const halfGap = S.gapWidth / 2;
+    const curve = sliceCurve(S.curveType, extent, S.curvature, S.sliceOffset, 80);
+
+    drawCtx.save();
+    drawCtx.translate(cx, cy);
+
+    for (let side = -1; side <= 1; side += 2) {
+        drawCtx.save();
+
+        const sign = side;
+        const farY = sign * (r * 3);
+
+        drawCtx.rotate(angle);
+
+        const offsetCurve = curve.map((pt, i) => {
+            const t = i / curve.length;
+            const taperMul = 1 - S.taper * (1 - Math.sin(t * Math.PI));
+            const g = halfGap * taperMul;
+            return { x: pt.x, y: pt.y + sign * g };
+        });
+
+        drawCtx.beginPath();
+        drawCtx.moveTo(offsetCurve[0].x, offsetCurve[0].y);
+        for (let j = 1; j < offsetCurve.length; j++) {
+            drawCtx.lineTo(offsetCurve[j].x, offsetCurve[j].y);
+        }
+        drawCtx.lineTo(extent, farY);
+        drawCtx.lineTo(-extent, farY);
+        drawCtx.closePath();
+
+        drawCtx.rotate(-angle);
+
+        drawCtx.clip();
+
+        const sp = shapePath(S.shape, r);
+        drawCtx.fillStyle = S.fillColor;
+        drawCtx.fill(sp);
+
+        drawCtx.restore();
+    }
+
+    if (S.lineWidth > 0) {
+        drawCtx.save();
+        drawCtx.rotate(angle);
+
+        const clipShape = shapePath(S.shape, r);
+        drawCtx.save();
+        drawCtx.rotate(-angle);
+        drawCtx.clip(clipShape);
+        drawCtx.rotate(angle);
+
+        drawCtx.beginPath();
+        drawCtx.moveTo(curve[0].x, curve[0].y);
+        for (let j = 1; j < curve.length; j++) {
+            drawCtx.lineTo(curve[j].x, curve[j].y);
+        }
+        drawCtx.strokeStyle = S.lineColor;
+        drawCtx.lineWidth = S.lineWidth;
+        drawCtx.lineCap = 'round';
+        drawCtx.stroke();
+
+        drawCtx.restore();
+    }
+
+    drawCtx.restore();
+}
+
+// ---- Render to arbitrary canvas (for export) ----
+function renderToExportCanvas(exportCtx, w, h, opts) {
+    if (!opts.transparent) {
+        exportCtx.fillStyle = S.bgColor;
+        exportCtx.fillRect(0, 0, w, h);
+    }
+
+    const n = S.count;
+    const r = S.size;
+    const sp = S.spacing;
+    const totalW = (n - 1) * sp;
+    const startX = w / 2 - totalW / 2;
+    const cy = h / 2;
+
+    for (let i = 0; i < n; i++) {
+        const cx = startX + i * sp;
+        const angleDeg = S.baseAngle + (n > 1
+            ? (i - (n - 1) / 2) * (S.angleSpread * 2 / Math.max(n - 1, 1))
+            : 0);
+        const angle = angleDeg * Math.PI / 180;
+
+        drawSlicedShape(exportCtx, cx, cy, r, angle, i, n);
+    }
+}
+
+// ---- SVG generation ----
+function generateSVG() {
+    const W = wrap.clientWidth;
+    const H = wrap.clientHeight;
+    let svgParts = [];
+    svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+    svgParts.push(`<rect width="${W}" height="${H}" fill="${S.bgColor}"/>`);
+
+    const n = S.count;
+    const r = S.size;
+    const sp = S.spacing;
+    const totalW = (n - 1) * sp;
+    const startX = W / 2 - totalW / 2;
+    const cy = H / 2;
+    const extent = r * 1.5;
+    const halfGap = S.gapWidth / 2;
+
+    for (let i = 0; i < n; i++) {
+        const cx = startX + i * sp;
+        const angleDeg = S.baseAngle + (n > 1
+            ? (i - (n - 1) / 2) * (S.angleSpread * 2 / Math.max(n - 1, 1))
+            : 0);
+
+        const curve = sliceCurve(S.curveType, extent, S.curvature, S.sliceOffset, 80);
+        const shapeD = svgShapePath(S.shape, r);
+        const clipId1 = `clip-${i}-top`;
+        const clipId2 = `clip-${i}-bot`;
+
+        for (let side = -1; side <= 1; side += 2) {
+            const clipId = side === -1 ? clipId1 : clipId2;
+            const farY = side * (r * 3);
+            const offsetCurve = curve.map((pt, j) => {
+                const t = j / curve.length;
+                const taperMul = 1 - S.taper * (1 - Math.sin(t * Math.PI));
+                const g = halfGap * taperMul;
+                return { x: pt.x, y: pt.y + side * g };
+            });
+
+            let clipD = `M${offsetCurve[0].x.toFixed(2)},${offsetCurve[0].y.toFixed(2)}`;
+            for (let j = 1; j < offsetCurve.length; j++) {
+                clipD += `L${offsetCurve[j].x.toFixed(2)},${offsetCurve[j].y.toFixed(2)}`;
+            }
+            clipD += `L${extent},${farY}L${-extent},${farY}Z`;
+
+            svgParts.push(`<defs><clipPath id="${clipId}" transform="translate(${cx},${cy}) rotate(${angleDeg})">`);
+            svgParts.push(`<path d="${clipD}"/>`);
+            svgParts.push(`</clipPath></defs>`);
+            svgParts.push(`<path d="${shapeD}" fill="${S.fillColor}" transform="translate(${cx},${cy})" clip-path="url(#${clipId})"/>`);
+        }
+    }
+
+    svgParts.push('</svg>');
+    return svgParts.join('\n');
+}
+
+function svgShapePath(type, r) {
+    switch (type) {
+        case 'circle':
+            return `M${-r},0A${r},${r},0,1,1,${r},0A${r},${r},0,1,1,${-r},0Z`;
+        case 'square':
+            return `M${-r},${-r}H${r}V${r}H${-r}Z`;
+        case 'rounded-square': {
+            const cr = r * 0.2;
+            return `M${-r+cr},${-r}H${r-cr}Q${r},${-r},${r},${-r+cr}V${r-cr}Q${r},${r},${r-cr},${r}H${-r+cr}Q${-r},${r},${-r},${r-cr}V${-r+cr}Q${-r},${-r},${-r+cr},${-r}Z`;
+        }
+        case 'diamond':
+            return `M0,${-r}L${r},0L0,${r}L${-r},0Z`;
+        case 'oval':
+            return `M${-r},0A${r},${r*0.7},0,1,1,${r},0A${r},${r*0.7},0,1,1,${-r},0Z`;
+        default: {
+            let pts = [];
+            const info = {
+                'triangle': [3, -Math.PI/2],
+                'inverted-triangle': [3, Math.PI/2],
+                'pentagon': [5, -Math.PI/2],
+                'hexagon': [6, 0],
+                'heptagon': [7, -Math.PI/2],
+                'octagon': [8, Math.PI/8],
+            };
+            if (info[type]) {
+                const [n, sa] = info[type];
+                for (let i = 0; i < n; i++) {
+                    const a = sa + (i / n) * Math.PI * 2;
+                    pts.push([Math.cos(a) * r, Math.sin(a) * r]);
+                }
+            } else if (type.startsWith('star-')) {
+                const n = parseInt(type.split('-')[1]);
+                const inner = type === 'star-6' ? r * 0.5 : r * 0.45;
+                for (let i = 0; i < n * 2; i++) {
+                    const a = -Math.PI/2 + (i / (n*2)) * Math.PI * 2;
+                    const rad = i % 2 === 0 ? r : inner;
+                    pts.push([Math.cos(a) * rad, Math.sin(a) * rad]);
+                }
+            } else if (type === 'cross') {
+                const a = r * 0.35;
+                pts = [[-a,-r],[a,-r],[a,-a],[r,-a],[r,a],[a,a],[a,r],[-a,r],[-a,a],[-r,a],[-r,-a],[-a,-a]];
+            } else if (type === 'semicircle') {
+                return `M${-r},0A${r},${r},0,0,1,${r},0Z`;
+            } else if (type === 'teardrop') {
+                return `M0,${-r}C${r*0.6},${-r},${r},${-r*0.4},${r},0A${r},${r},0,0,1,${-r},0C${-r},${-r*0.4},${-r*0.6},${-r},0,${-r}Z`;
+            } else if (type === 'shield') {
+                return `M${-r},${-r}H${r}V${r*0.2}Q${r},${r*0.7},0,${r}Q${-r},${r*0.7},${-r},${r*0.2}Z`;
+            } else {
+                return `M${-r},0A${r},${r},0,1,1,${r},0A${r},${r},0,1,1,${-r},0Z`;
+            }
+            if (pts.length) {
+                let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+                for (let i = 1; i < pts.length; i++) d += `L${pts[i][0].toFixed(2)},${pts[i][1].toFixed(2)}`;
+                return d + 'Z';
+            }
+            return '';
+        }
+    }
+}
+
+// ---- Controls ----
+function bindRange(id, prop, isFloat) {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(id + 'Val');
+    el.addEventListener('input', function() {
+        S[prop] = isFloat ? parseFloat(this.value) : parseInt(this.value);
+        valEl.textContent = this.value;
+        draw();
+    });
+}
+
+function bindColor(id, prop) {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(id + 'Val');
+    el.addEventListener('input', function() {
+        S[prop] = this.value;
+        valEl.textContent = this.value;
+        draw();
+    });
+}
+
+function bindSelect(id, prop) {
+    const el = document.getElementById(id);
+    el.addEventListener('change', function() {
+        S[prop] = this.value;
+        draw();
+    });
+}
+
+// ---- Shape picker ----
+const SHAPES_LIST = [
+    { id: 'circle',            name: 'Circle' },
+    { id: 'square',            name: 'Square' },
+    { id: 'rounded-square',    name: 'Rounded Square' },
+    { id: 'diamond',           name: 'Diamond' },
+    { id: 'triangle',          name: 'Triangle' },
+    { id: 'inverted-triangle', name: 'Inverted Triangle' },
+    { id: 'pentagon',          name: 'Pentagon' },
+    { id: 'hexagon',           name: 'Hexagon' },
+    { id: 'heptagon',          name: 'Heptagon' },
+    { id: 'octagon',           name: 'Octagon' },
+    { id: 'star-4',            name: 'Star (4)' },
+    { id: 'star-5',            name: 'Star (5)' },
+    { id: 'star-6',            name: 'Star (6)' },
+    { id: 'cross',             name: 'Cross' },
+    { id: 'semicircle',        name: 'Semicircle' },
+    { id: 'oval',              name: 'Oval' },
+    { id: 'teardrop',          name: 'Teardrop' },
+    { id: 'shield',            name: 'Shield' },
+];
+
+function buildShapePicker() {
+    const grid = document.getElementById('shapeGrid');
+    const dpr = window.devicePixelRatio || 1;
+
+    SHAPES_LIST.forEach(function(shape) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'shape-btn' + (shape.id === S.shape ? ' active' : '');
+        btn.dataset.shape = shape.id;
+        btn.title = shape.name;
+
+        const mini = document.createElement('canvas');
+        const sz = 28;
+        mini.width = sz * dpr;
+        mini.height = sz * dpr;
+        mini.style.width = sz + 'px';
+        mini.style.height = sz + 'px';
+
+        const mctx = mini.getContext('2d');
+        mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        mctx.fillStyle = '#999';
+        mctx.translate(sz / 2, sz / 2);
+        mctx.fill(shapePath(shape.id, sz * 0.36));
+
+        btn.appendChild(mini);
+        grid.appendChild(btn);
+
+        btn.addEventListener('click', function() {
+            S.shape = shape.id;
+            grid.querySelectorAll('.shape-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            draw();
+            pm.update();
+        });
+    });
+}
+
+bindRange('count', 'count');
+bindRange('size', 'size');
+bindRange('spacing', 'spacing');
+bindRange('baseAngle', 'baseAngle');
+bindRange('angleSpread', 'angleSpread');
+bindRange('curvature', 'curvature', true);
+bindRange('gapWidth', 'gapWidth', true);
+bindRange('lineWidth', 'lineWidth', true);
+bindRange('taper', 'taper', true);
+bindRange('sliceOffset', 'sliceOffset', true);
+bindColor('bgColor', 'bgColor');
+bindColor('fillColor', 'fillColor');
+bindColor('lineColor', 'lineColor');
+bindSelect('curveType', 'curveType');
+
+function syncUI() {
+    for (const [id, prop] of [
+        ['count', 'count'], ['size', 'size'], ['spacing', 'spacing'],
+        ['baseAngle', 'baseAngle'], ['angleSpread', 'angleSpread'],
+        ['curvature', 'curvature'], ['gapWidth', 'gapWidth'],
+        ['lineWidth', 'lineWidth'],
+        ['taper', 'taper'], ['sliceOffset', 'sliceOffset']
+    ]) {
+        document.getElementById(id).value = S[prop];
+        document.getElementById(id + 'Val').textContent = S[prop];
+    }
+    for (const [id, prop] of [['bgColor', 'bgColor'], ['fillColor', 'fillColor'], ['lineColor', 'lineColor']]) {
+        document.getElementById(id).value = S[prop];
+        document.getElementById(id + 'Val').textContent = S[prop];
+    }
+    document.querySelectorAll('#shapeGrid .shape-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.shape === S.shape);
+    });
+    document.getElementById('curveType').value = S.curveType;
+}
+
+// Randomize — uses seeded RNG (mulberry32) so Randomize + share = reproducible
+function applyRandom(seed) {
+    const rand = window.LogoRNG.mulberry32(seed);
+    const shapes = ['circle','square','rounded-square','diamond','triangle','hexagon','octagon','oval','pentagon','star-5','shield'];
+    const curves = ['arc','sine','straight','s-curve','zigzag'];
+    S.count = 2 + Math.floor(rand() * 6);
+    S.shape = shapes[Math.floor(rand() * shapes.length)];
+    S.size = 60 + Math.floor(rand() * 140);
+    S.spacing = Math.round(S.size * (1.1 + rand() * 0.8));
+    S.curveType = curves[Math.floor(rand() * curves.length)];
+    S.baseAngle = Math.floor(rand() * 60 - 30);
+    S.angleSpread = Math.floor(rand() * 50);
+    S.curvature = +(rand() * 0.7).toFixed(2);
+    S.gapWidth = +(3 + rand() * 15).toFixed(1);
+    S.lineWidth = rand() > 0.6 ? +(1 + rand() * 4).toFixed(1) : 0;
+    S.taper = +(rand() * 0.8).toFixed(2);
+    S.sliceOffset = +((rand() - 0.5) * 0.3).toFixed(2);
+
+    if (rand() > 0.5) {
+        const hue = Math.floor(rand() * 360);
+        const light = 70 + Math.floor(rand() * 25);
+        S.bgColor = hslToHex(hue, 10, light);
+        S.fillColor = hslToHex(hue, 15, 10 + Math.floor(rand() * 20));
+    } else {
+        const hue = Math.floor(rand() * 360);
+        S.bgColor = hslToHex(hue, 10, 5 + Math.floor(rand() * 15));
+        S.fillColor = hslToHex(hue, 10, 80 + Math.floor(rand() * 18));
+    }
+    S.lineColor = S.fillColor;
+    S.seed = seed;
+}
+
+document.getElementById('randomBtn').addEventListener('click', function() {
+    applyRandom(window.LogoRNG.randomSeed());
+    syncUI();
+    draw();
+});
+
+function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return '#' + f(0) + f(8) + f(4);
+}
+
+// ---- Export setup ----
+const exportW = 800;
+const exportH = 800;
+
+// ---- Permalink ----
+const LS = window.LogoSchema;
+/* Re-checked landing-page variants — lw=0 in ALL of them; rogue outlines
+   in earlier output came from my biased-but-nonzero lw. Forcing exact 0.
+   Geometry: shape diameter = 2*sz, total extent = (c−1)*sp + 2*sz, plus
+   diagonal fan-out from ba/as adding ~15-30% effective spread. Variants
+   assume ~700-800px canvas; curator iframes ~400px. So target total has
+   to be tighter than variants and account for diagonal extent.
+
+   Color: lc (line/cut color) coupled to fc so any visible cut matches
+   the shape — bg/fc harmony comes from the smart-pair generator. */
+const pschema = {
+    /* Distribution: 80% single hero (centered, varied cuts via lc.post),
+       15% pair (variant-zone interlock), 5% trio (fanned). */
+    c: {
+      ...LS.WEIGHTED_INT_RANGE(1, 12, 3, { rmin: 1, rmax: 3 }),
+      randomize(rng) {
+        const r = rng();
+        if (r < 0.80) return 1;
+        if (r < 0.95) return 2;
+        return 3;
+      },
+    },
+    sh: LS.ENUM(['circle','square','rounded-square','diamond','triangle','inverted-triangle','pentagon','hexagon','heptagon','octagon','star-4','star-5','star-6','cross','semicircle','oval','teardrop','shield'], 'circle'),
+    /* sz post is c- AND shape-aware: round shapes (circle/oval/etc.)
+       need a higher sp/sz ratio (~1.5+) for the clean "kissing" look,
+       so we shrink sz to leave canvas budget for that spacing. Sharp
+       shapes can run larger because they interlock cleanly at sp ≈ sz. */
+    sz: {
+      ...LS.WEIGHTED_INT_RANGE(30, 250, 100, { rmin: 60, rmax: 110 }),
+      post(state, rng) {
+        const c = (typeof state.c === 'number') ? state.c : 2;
+        const sh = state.sh || 'circle';
+        const isRound = ['circle','oval','semicircle','teardrop','rounded-square'].includes(sh);
+        if (c === 1) return 95 + Math.floor(rng() * 30);  // [95, 125] hero
+        if (c === 2) return isRound
+          ? 65 + Math.floor(rng() * 25)   // [65, 90]  round pair (small to fit kiss)
+          : 80 + Math.floor(rng() * 25);  // [80, 105] sharp pair
+        return isRound
+          ? 50 + Math.floor(rng() * 15)   // [50, 65]  round trio
+          : 55 + Math.floor(rng() * 20);  // [55, 75]  sharp trio
+      },
+    },
+    /* sp ratio is c- and shape-aware:
+         Round shapes (circle/oval/semicircle/teardrop/rounded-square)
+           c=2: sp/sz ∈ [1.50, 1.85] — clean "kissing" interlock
+           c=3: sp/sz ∈ [1.40, 1.70]
+         Sharp/angular shapes (diamond, cross, polygon, star, shield)
+           c=2: sp/sz ∈ [0.95, 1.50] — variant-zone overlap (v2: 0.95, v3: 1.08)
+           c=3: sp/sz ∈ [1.05, 1.35]
+       Hard-capped so total extent never exceeds 320 (canvas-safe). */
+    sp: {
+      ...LS.WEIGHTED_INT_RANGE(40, 400, 220, { rmin: 100, rmax: 250 }),
+      post(state, rng) {
+        const c  = (typeof state.c  === 'number') ? state.c  : 2;
+        const sz = (typeof state.sz === 'number') ? state.sz : 100;
+        const sh = state.sh || 'circle';
+        if (c <= 1) return Math.round(sz * 1.5);
+        const ROUND = new Set(['circle','oval','semicircle','teardrop','rounded-square']);
+        const isRound = ROUND.has(sh);
+        const ratio = isRound
+          ? (c === 2 ? 1.50 + rng() * 0.35 : 1.40 + rng() * 0.30)
+          : (c === 2 ? 0.95 + rng() * 0.55 : 1.05 + rng() * 0.30);
+        const desired = Math.round(sz * ratio);
+        const maxSp   = Math.floor((320 - 2 * sz) / (c - 1));
+        return Math.max(40, Math.min(400, Math.min(desired, maxSp)));
+      },
+    },
+    /* Cuts read clean only when the slice direction is consistent — variants
+       use cv=arc with cu=0 (effectively straight), ba near 0 or ±180 (which
+       are equivalent), as=0 (3/4) or 38 (1/4). Random curves at random
+       angles produce dissonant compositions. */
+    cv: LS.ENUM_WEIGHTED([
+      ['straight', 5], ['arc', 2], ['sine', 1], ['s-curve', 0.3], ['zigzag', 0.3],
+    ], 'arc'),
+    ba: LS.WEIGHTED_INT_RANGE(-180, 180, 0, { rmin: -12, rmax: 12 }),
+    /* as = 0 in 3/4 variants, 38 in 1/4. Bias heavy toward 0 with a
+       jump to a moderate-fan secondary mode. */
+    as: {
+      ...LS.WEIGHTED_INT_RANGE(0, 90, 25, { rmin: 0, rmax: 30 }),
+      randomize(rng) {
+        if (rng() < 0.7) return 0;
+        return 15 + Math.floor(rng() * 25); // [15, 40]
+      },
+    },
+    /* Variant 1 (defaults) ships with cu=0.35 (gentle arc). Variants 2-4
+       explicitly disable curve. Mix: 75% straight, 25% gentle arc — the
+       latter matches the default homepage embed look. */
+    cu: {
+      ...LS.FLOAT_RANGE(0, 1, 0.35, 2),
+      randomize(rng) {
+        return rng() < 0.75 ? 0 : Math.round((0.20 + rng() * 0.20) * 100) / 100;
+      },
+    },
+    gw: LS.WEIGHTED_FLOAT_RANGE(1, 40, 8, 1, { rmin: 14, rmax: 30 }),
+    /* All variants ship with lw/tp/so at default 0. Force to 0 always —
+       any non-zero values produced the haphazard outlines/tapers. */
+    lw: { ...LS.FLOAT_RANGE(0, 8, 0, 1), randomize: () => 0 },
+    tp: { ...LS.FLOAT_RANGE(0, 1, 0, 2), randomize: () => 0 },
+    so: { ...LS.FLOAT_RANGE(-0.5, 0.5, 0, 2), randomize: () => 0 },
+    bg: LS.COLOR('#c8c8c8'),
+    fc: LS.COLOR('#2a2a2a'),
+    /* lc.post does three things — runs AFTER all other fields:
+       (1) ~30% of shuffles, snap state to a homepage-variant template.
+       (2) Else if c=1 (single hero), re-roll the cut params wildly —
+           with only one shape on canvas, the slice IS the visual
+           interest, so we want diverse curve types, gaps, tapers,
+           offsets, and angles.
+       (3) Always couple lc to fc so any visible cut blends with shape. */
+    lc: {
+      ...LS.COLOR('#000000'),
+      post(state, rng) {
+        /* Templates only apply to multi-shape (c≥2) outputs so single-
+           hero shuffles always render as single hero with varied cuts. */
+        if (state.c >= 2 && rng() < 0.60) {
+          const TEMPLATES = [
+            { c: 2, sh: 'diamond', sz: 100, sp: 95,  cv: 'arc', ba: -7,  as: 0,  cu: 0,    gw: 22 },
+            { c: 2, sh: 'cross',   sz: 100, sp: 108, cv: 'arc', ba: 0,   as: 0,  cu: 0,    gw: 22 },
+            { c: 3, sh: 'circle',  sz: 60,  sp: 90,  cv: 'arc', ba: 0,   as: 25, cu: 0.35, gw: 8  },
+            { c: 3, sh: 'shield',  sz: 55,  sp: 95,  cv: 'arc', ba: 0,   as: 38, cu: 0,    gw: 18 },
+          ];
+          Object.assign(state, TEMPLATES[Math.floor(rng() * TEMPLATES.length)]);
+        } else if (state.c === 1) {
+          /* Single hero — slice is the only visual variety. Sample cut
+             params widely from the full range. */
+          const cvWeights = [['straight', 3], ['arc', 3], ['sine', 2.5], ['s-curve', 2], ['zigzag', 1.5]];
+          const cvTotal = cvWeights.reduce((s, x) => s + x[1], 0);
+          let cvR = rng() * cvTotal;
+          for (const [v, w] of cvWeights) { cvR -= w; if (cvR <= 0) { state.cv = v; break; } }
+
+          state.cu = rng() < 0.35 ? 0 : Math.round((0.15 + rng() * 0.40) * 100) / 100;     // 65% curved
+          state.gw = Math.round((10 + rng() * 28) * 10) / 10;                              // [10, 38]
+          state.tp = rng() < 0.55 ? 0 : Math.round((0.20 + rng() * 0.45) * 100) / 100;     // 45% taper
+          state.so = rng() < 0.55 ? 0 : Math.round((-0.15 + rng() * 0.30) * 100) / 100;    // 45% offset
+          state.ba = Math.floor(-30 + rng() * 61);                                          // [-30, 30]
+          state.as = 0; // no fan with single shape
+        }
+        return (typeof state.fc === 'string') ? state.fc : '#000000';
+      },
+    },
+    sd: LS.SEED(0),
+};
+S.seed = 0;
+function getPermalinkState() {
+    return {
+        c: S.count, sh: S.shape, sz: S.size, sp: S.spacing, cv: S.curveType,
+        ba: S.baseAngle, as: S.angleSpread, cu: S.curvature, gw: S.gapWidth,
+        lw: S.lineWidth, tp: S.taper, so: S.sliceOffset,
+        bg: S.bgColor, fc: S.fillColor, lc: S.lineColor, sd: S.seed || 0,
+    };
+}
+function applyPermalinkState(s) {
+    S.count = s.c; S.shape = s.sh; S.size = s.sz; S.spacing = s.sp;
+    S.curveType = s.cv; S.baseAngle = s.ba; S.angleSpread = s.as;
+    S.curvature = s.cu; S.gapWidth = s.gw; S.lineWidth = s.lw;
+    S.taper = s.tp; S.sliceOffset = s.so;
+    S.bgColor = s.bg; S.fillColor = s.fc; S.lineColor = s.lc;
+    S.seed = s.sd;
+    syncUI();
+    draw();
+}
+const pm = new window.PermalinkManager({
+    toolName: 'sliced-shapes',
+    schema: pschema, getState: getPermalinkState, applyState: applyPermalinkState,
+});
+['count','size','spacing','curveType','baseAngle','angleSpread',
+ 'curvature','gapWidth','lineWidth','taper','sliceOffset',
+ 'bgColor','fillColor','lineColor'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const evt = (el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(evt, () => pm.update());
+});
+document.getElementById('randomBtn').addEventListener('click', () => pm.update());
+
+new ToolExporter({
+    toolName: 'sliced-shapes',
+    getCanvas: () => canvasEl,
+    getSVG: generateSVG,
+    getBackgroundColor: () => S.bgColor,
+    baseWidth: exportW,
+    baseHeight: exportH,
+    renderToCanvas: (expCtx, w, h, opts) => {
+        const scaleX = w / exportW;
+        const scaleY = h / exportH;
+        expCtx.save();
+        expCtx.scale(scaleX, scaleY);
+        renderToExportCanvas(expCtx, exportW, exportH, opts);
+        expCtx.restore();
+    },
+    getPermalink: () => pm.getPermalink(),
+    flushPermalink: () => pm.flush(),
+});
+
+// ---- Init ----
+buildShapePicker();
+resize();
+pm.decode();
+pm.setupPresets();
+    </script>
+    <script src="/shared/tools-nav.js"></script>
+</body>
+</html>

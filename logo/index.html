@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logo Lab | Generative tools for iconic logos</title>
+<meta name="description" content="Generative tools for iconic logos: ten parametric logo systems you can tune, share, export, and explore from a wall of launch-ready marks.">
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Logo Lab — Generative tools for iconic logos">
+<meta property="og:description" content="Ten parametric logo systems you can tune, share, export, and explore from a wall of launch-ready marks.">
+<meta property="og:image" content="https://natemodi.com/logo/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A wall of selected Logo Lab marks.">
+<meta property="og:url" content="https://natemodi.com/logo/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Logo Lab — Generative tools for iconic logos">
+<meta name="twitter:description" content="Ten parametric logo systems you can tune, share, export, and explore from a wall of launch-ready marks.">
+<meta name="twitter:image" content="https://natemodi.com/logo/og-image.png">
+<meta name="twitter:image:alt" content="A wall of selected Logo Lab marks.">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    --bg: #fdfdfc;
+    --fg: #111;
+    --fg-muted: rgba(17, 17, 17, 0.58);
+    --fg-faded: rgba(17, 17, 17, 0.4);
+    --fg-quiet: rgba(17, 17, 17, 0.32);
+    --border: rgba(17, 17, 17, 0.1);
+    --border-subtle: rgba(17, 17, 17, 0.06);
+    --code-bg: #f4f3f1;
+    --code-border: rgba(17, 17, 17, 0.08);
+    --accent: #111;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    color-scheme: light;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
+  }
+
+  /* ── Layout: sidebar + main ── */
+  .page {
+    display: flex;
+    justify-content: center;
+    gap: 64px;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 64px 32px 128px;
+    align-items: flex-start;
+  }
+
+  aside {
+    width: 140px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 64px;
+    font-size: 13px;
+  }
+
+  .aside-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--fg-faded);
+    text-decoration: none;
+    font-size: 13px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+    transition: color 0.15s ease;
+  }
+  .aside-home:hover { color: var(--fg); }
+  .aside-home__arrow {
+    color: var(--fg-faded);
+    font-size: 12px;
+    line-height: 1;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .aside-home:hover .aside-home__arrow {
+    color: var(--fg);
+    transform: translateX(-2px);
+  }
+
+  .aside-title {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    line-height: 1.15;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+    transform: translateX(-4px);
+  }
+  .aside-title__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .aside-title__link:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .aside-title__mark {
+    width: 26px;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .aside-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--fg-faded);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 16px;
+    transition: color 0.15s ease;
+  }
+  .aside-source:hover { color: var(--fg); }
+  .aside-source:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .aside-source svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  aside ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  aside a.toc-link {
+    display: block;
+    color: var(--fg-faded);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 2px 0;
+    transition: color 0.15s ease;
+  }
+  aside a.toc-link:hover { color: var(--fg); }
+  aside a.toc-link.is-active { color: var(--fg); font-weight: 500; }
+
+  /* ── Main article ── */
+  main { flex: 1; min-width: 0; max-width: 560px; }
+
+  .hero-top {
+    margin-bottom: 16px;
+  }
+
+  .showcase-wall {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 10px;
+  }
+
+  .showcase-tile {
+    position: relative;
+    display: block;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: var(--code-bg);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .showcase-tile:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .showcase-tile img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    object-fit: cover;
+  }
+
+  article p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--fg);
+    margin-top: 16px;
+  }
+
+  article p.lede { color: var(--fg); }
+  article p.caption {
+    font-size: 13px;
+    color: var(--fg-muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .intro {
+    margin-top: 18px;
+  }
+  .intro .lede {
+    margin-top: 0;
+    font-weight: 500;
+  }
+  .context-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 18px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fg-muted);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .intro.is-open .context-toggle {
+    margin-top: 19px;
+  }
+  .context-toggle:hover,
+  .context-toggle:focus-visible {
+    color: var(--fg);
+  }
+  .context-toggle:focus-visible {
+    outline: none;
+  }
+  .context-toggle__glyph {
+    position: absolute;
+    top: 50%;
+    left: -20px;
+    width: 15px;
+    height: 15px;
+    margin-top: -7.5px;
+    flex-shrink: 0;
+    color: currentColor;
+  }
+  .context-toggle__glyph::before,
+  .context-toggle__glyph::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+    border-radius: 999px;
+    transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+  }
+  .context-toggle__glyph::before {
+    top: 7px;
+    left: 2px;
+    width: 11px;
+    height: 1px;
+    transform-origin: left center;
+  }
+  .context-toggle__glyph::after {
+    top: 2px;
+    left: 7px;
+    width: 1px;
+    height: 11px;
+    transform-origin: center;
+  }
+  .context-toggle__label {
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .context-toggle:hover .context-toggle__label {
+    border-bottom-color: currentColor;
+  }
+  .intro-more {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+      grid-template-rows 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s ease,
+      transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .intro-more__inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .intro-more__copy {
+    margin-top: 10px;
+  }
+  .intro-more__copy p:first-child {
+    margin-top: 0;
+  }
+  .intro.is-open .intro-more {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .intro.is-open .context-toggle__glyph::after {
+    opacity: 0;
+    transform: rotate(90deg) scaleY(0.2);
+  }
+
+  .sep {
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0 28px;
+  }
+  .intro:not(.is-open) + #sections > .sep:first-child {
+    margin-top: 28px;
+  }
+
+  /* Section header — title link sits as a heading; tagline below. */
+  .section-head {
+    margin-bottom: 0;
+    scroll-margin-top: 32px;
+  }
+
+  article .section-title {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  article .section-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+    text-decoration: none;
+    letter-spacing: -0.005em;
+  }
+  .section-link__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: var(--fg);
+  }
+  .section-link__icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  /* Subtle hover: title text underlines, arrow brightens + nudges. */
+  .section-link__text {
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  article .section-link:hover .section-link__text {
+    border-bottom-color: var(--fg);
+  }
+  article .section-link .section-link__arrow {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    color: var(--fg-faded);
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  article .section-link:hover .section-link__arrow {
+    color: var(--fg);
+    transform: translate(1px, -1px);
+  }
+
+  article .section-tagline {
+    color: var(--fg-muted);
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 3px 0 0;
+  }
+
+  /* ── Embed surface ── */
+  .embed-wrap {
+    margin-top: 24px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--code-bg);
+    position: relative;
+    min-height: 240px;
+  }
+
+  .embed-wrap iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: var(--code-bg);
+    height: 320px; /* overridden by postMessage once mounted */
+    transition: height 0.25s ease;
+  }
+
+  .embed-skeleton {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-quiet);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    background: linear-gradient(90deg, var(--code-bg) 0%, #ebeae7 50%, var(--code-bg) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  .embed-wrap.is-ready .embed-skeleton { display: none; }
+
+  /* ── Variant grid (4-up tile mode for tools with multiple variants) ── */
+  .embed-grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .embed-grid .tile {
+    position: relative;
+    display: block;
+    background: var(--code-bg);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease;
+    aspect-ratio: 1 / 1;
+  }
+  .embed-grid .tile:hover { background: var(--bg); }
+  .embed-grid .tile:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: -2px;
+    z-index: 1;
+  }
+  /* Render each tile iframe at 3x its visible size, then scale-down so the
+     tool gets a full-resolution canvas while the mark still fits the tile.
+     3x is needed for variants whose multi-shape arrangements span ~800px. */
+  .embed-grid .tile iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300%;
+    height: 300%;
+    transform: scale(0.3333);
+    transform-origin: top left;
+    border: 0;
+    background: var(--code-bg);
+    pointer-events: none;
+  }
+  .embed-grid .tile .embed-skeleton { font-size: 11px; }
+  .embed-grid .tile.is-ready .embed-skeleton { display: none; }
+  .embed-grid .tile.is-failed .embed-skeleton { display: none; }
+  .embed-grid .tile.is-failed::after {
+    content: '⚠';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-quiet);
+    font-size: 16px;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .embed-skeleton { animation: none; background: var(--code-bg); }
+    .context-toggle,
+    .context-toggle__glyph,
+    .context-toggle__glyph::before,
+    .context-toggle__glyph::after,
+    .context-toggle__label,
+    .intro-more {
+      animation: none;
+      transition: none;
+    }
+  }
+
+  /* Fallback (iframe failed or timed out) */
+  .embed-fallback {
+    display: none;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--fg-muted);
+    font-size: 13px;
+  }
+  .embed-wrap.is-failed .embed-skeleton { display: none; }
+  .embed-wrap.is-failed iframe { display: none; }
+  .embed-wrap.is-failed .embed-fallback { display: block; }
+  .embed-fallback svg {
+    width: 56px; height: 56px;
+    color: var(--fg-quiet);
+    margin-bottom: 14px;
+  }
+  .embed-fallback a {
+    display: inline-block;
+    margin-top: 6px;
+    color: var(--fg);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  /* ── Action row below each embed ── */
+  .actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 13px;
+  }
+  .actions button,
+  .actions a {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--fg-muted);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s ease;
+  }
+  .actions button:hover,
+  .actions a:hover { color: var(--fg); }
+  .actions svg { width: 12px; height: 12px; }
+
+  .actions button.is-copied { color: #2f8f4a; }
+
+  /* ── Copyable embed snippet ── */
+  details.embed-snippet {
+    margin-top: 14px;
+  }
+  details.embed-snippet > summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--fg-muted);
+    list-style: none;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s ease;
+  }
+  details.embed-snippet > summary::-webkit-details-marker { display: none; }
+  details.embed-snippet > summary:hover { color: var(--fg); }
+  details.embed-snippet > summary svg {
+    width: 10px; height: 10px;
+    transition: transform 0.15s ease;
+  }
+  details.embed-snippet[open] > summary svg { transform: rotate(90deg); }
+
+  details.embed-snippet pre {
+    margin-top: 10px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.45;
+    color: #333;
+    position: relative;
+  }
+  details.embed-snippet pre code { display: block; white-space: pre; }
+  details.embed-snippet .snippet-copy {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-family: var(--font);
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  details.embed-snippet .snippet-copy:hover {
+    color: var(--fg);
+    border-color: var(--fg-faded);
+  }
+  details.embed-snippet .snippet-copy.is-copied { color: #2f8f4a; }
+
+  /* ── Citation (logobook.com reference, below each section) ── */
+  .credit {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--fg-faded);
+    font-style: italic;
+    letter-spacing: 0.003em;
+  }
+  .credit .credit-label {
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    font-style: normal;
+    font-size: 10.5px;
+    color: var(--fg-quiet);
+    margin-right: 6px;
+  }
+  .credit a {
+    color: var(--fg-muted);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--fg-quiet);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .credit a:hover {
+    color: var(--fg);
+    border-bottom-color: var(--fg);
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: #111;
+    color: #fff;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 100;
+    pointer-events: none;
+    font-family: var(--font);
+  }
+  .toast.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── Footer ── */
+  .article-foot {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--fg-quiet);
+  }
+  .article-foot p {
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--fg-quiet);
+    margin-top: 0;
+    letter-spacing: 0.003em;
+  }
+  .article-foot code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-faded);
+    background: none;
+    padding: 0;
+  }
+  .article-foot a { color: var(--fg-faded); text-decoration: none; border-bottom: 1px dotted var(--fg-quiet); }
+  .article-foot a:hover { color: var(--fg); border-bottom-color: var(--fg); }
+
+  /* Header entry points — prominent enough to act as primary product paths. */
+  .entry-points {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    width: 100%;
+    margin: 0;
+    padding: 5px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: rgba(17, 17, 17, 0.018);
+  }
+  .entry {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 9px;
+    color: var(--fg);
+    text-decoration: none;
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 9px;
+    border-radius: 6px;
+  }
+  .entry__icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    color: var(--fg);
+  }
+  .entry__title {
+    justify-self: start;
+    width: fit-content;
+    font-size: 16px;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .entry:hover .entry__title {
+    border-bottom-color: currentColor;
+  }
+  .entry__arrow {
+    justify-self: end;
+    color: var(--fg-faded);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .intro-arrow {
+    color: var(--fg-faded);
+    font-size: 13px;
+    line-height: 1;
+    margin-right: 0.4em;
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 768px) {
+    .page {
+      flex-direction: column;
+      width: 100%;
+      max-width: 100%;
+      gap: 0;
+      padding: 32px 20px 96px;
+      overflow-x: hidden;
+    }
+    aside {
+      position: static;
+      width: 100%;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      overflow: hidden;
+    }
+    .aside-title { margin-bottom: 10px; }
+    .aside-title__mark { width: 28px; }
+    .aside-home {
+      margin-top: 12px;
+      padding-top: 0;
+      border-top: 0;
+    }
+    aside ul {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 12px;
+      margin-right: -20px;
+      padding: 0 64px 6px 0;
+      scroll-padding-inline: 0 64px;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 72px), rgba(0, 0, 0, 0));
+      mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 72px), rgba(0, 0, 0, 0));
+    }
+    aside ul::-webkit-scrollbar { display: none; }
+    aside a.toc-link {
+      white-space: nowrap;
+      padding: 4px 0;
+    }
+    main,
+    article {
+      width: 100%;
+      max-width: 100%;
+    }
+    .hero-top {
+      margin-bottom: 20px;
+    }
+    .entry-points {
+      width: 100%;
+      max-width: none;
+      margin-top: 0;
+    }
+    .showcase-wall { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page" id="top">
+
+  <aside>
+    <h1 class="aside-title">
+      <a class="aside-title__link" href="#top" aria-label="Logo Lab top">
+        <img class="aside-title__mark" src="/logo/logo-lab-mark.svg" alt="">
+        <span>Logo Lab</span>
+      </a>
+    </h1>
+    <a class="aside-source" href="https://github.com/nmemodi/logo-lab" target="_blank" rel="noopener noreferrer" aria-label="Fork Logo Lab on GitHub">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.6 7.6 0 0 1 8 3.86c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+      </svg>
+      <span>Fork / remix</span>
+    </a>
+    <ul id="toc"></ul>
+    <a class="aside-home" href="/">
+      <span class="aside-home__arrow" aria-hidden="true">←</span>
+      <span>Home</span>
+    </a>
+  </aside>
+
+  <main>
+    <article>
+      <div class="hero-top">
+        <div class="showcase-wall" aria-label="Selected Logo Lab outputs">
+          <a class="showcase-tile" href="#polygon-rosette" aria-label="Jump to Polygon Rosette">
+            <img src="/logo/showcase/polygon-rosette-dark.png" alt="" width="1600" height="1600" loading="eager" decoding="async" fetchpriority="high">
+          </a>
+          <a class="showcase-tile" href="#line-warp" aria-label="Jump to Line Warp">
+            <img src="/logo/showcase/line-warp-purple.png" alt="" width="1600" height="1600" loading="eager" decoding="async" fetchpriority="high">
+          </a>
+          <a class="showcase-tile" href="#shape-tiles" aria-label="Jump to Shape Tiles">
+            <img src="/logo/showcase/shape-tiles-green.png" alt="" width="1600" height="1600" loading="eager" decoding="async" fetchpriority="high">
+          </a>
+          <a class="showcase-tile" href="#echo-stripes" aria-label="Jump to Echo Stripes">
+            <img src="/logo/showcase/echo-stripes-magenta.png" alt="" width="1600" height="1600" loading="eager" decoding="async">
+          </a>
+          <a class="showcase-tile" href="#sliced-shapes" aria-label="Jump to Sliced Shapes">
+            <img src="/logo/showcase/sliced-shapes-orange.png" alt="" width="1600" height="1600" loading="eager" decoding="async">
+          </a>
+          <a class="showcase-tile" href="#polygon-rosette" aria-label="Jump to Polygon Rosette">
+            <img src="/logo/showcase/polygon-rosette-light.png" alt="" width="1600" height="1600" loading="eager" decoding="async">
+          </a>
+        </div>
+
+        <div class="entry-points">
+          <a class="entry" data-dir="right" href="/logo/explorer/">
+            <svg class="entry__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21.5 14L20 9C20 9 19.5 7 17.5 7C17.5 7 17.5 5 15.5 5C13.5 5 13.5 7 13.5 7H10.5C10.5 7 10.5 5 8.5 5C6.5 5 6.5 7 6.5 7C4.5 7 4 9 4 9L2.5 14"/>
+              <path d="M6 20C8.20914 20 10 18.2091 10 16C10 13.7909 8.20914 12 6 12C3.79086 12 2 13.7909 2 16C2 18.2091 3.79086 20 6 20Z"/>
+              <path d="M18 20C20.2091 20 22 18.2091 22 16C22 13.7909 20.2091 12 18 12C15.7909 12 14 13.7909 14 16C14 18.2091 15.7909 20 18 20Z"/>
+              <path d="M12 16C13.1046 16 14 15.1046 14 14C14 12.8954 13.1046 12 12 12C10.8954 12 10 12.8954 10 14C10 15.1046 10.8954 16 12 16Z"/>
+            </svg>
+            <span class="entry__title">Explorer</span>
+            <span class="entry__arrow" aria-hidden="true">→</span>
+          </a>
+          <a class="entry" data-dir="down" href="#sections">
+            <svg class="entry__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.0503 10.6066L2.97923 17.6777C2.19818 18.4587 2.19818 19.7251 2.97923 20.5061C3.76027 21.2872 5.0266 21.2872 5.80765 20.5061L12.8787 13.4351"/>
+              <path d="M17.1927 13.7994L21.071 17.6777C21.8521 18.4587 21.8521 19.7251 21.071 20.5061C20.29 21.2872 19.0236 21.2872 18.2426 20.5061L12.0341 14.2977"/>
+              <path d="M6.73267 5.90381L4.61135 6.61092L2.49003 3.07539L3.90424 1.66117L7.43978 3.78249L6.73267 5.90381ZM6.73267 5.90381L9.5629 8.73404"/>
+              <path d="M10.0503 10.6066C9.2065 8.45359 9.37147 5.62861 11.111 3.8891C12.8505 2.14958 16.0607 1.76778 17.8285 2.82844L14.7878 5.86911L14.5052 8.98015L17.6162 8.69754L20.6569 5.65686C21.7176 7.42463 21.3358 10.6349 19.5963 12.3744C17.8567 14.1139 15.0318 14.2789 12.8788 13.435"/>
+            </svg>
+            <span class="entry__title">Individual tools</span>
+            <span class="entry__arrow" aria-hidden="true">↓</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="intro" id="logo-lab-intro">
+        <p class="lede">Logo Lab is an open-source collection of parametric tools for making strong minimalist logos from real design systems.</p>
+
+        <button class="context-toggle" type="button" aria-expanded="false" aria-controls="logo-lab-intro-more" data-intro-toggle>
+          <span class="context-toggle__glyph" aria-hidden="true"></span>
+          <span class="context-toggle__label">More context</span>
+        </button>
+
+        <div class="intro-more" id="logo-lab-intro-more" aria-hidden="true">
+          <div class="intro-more__inner">
+            <div class="intro-more__copy">
+              <p>I love logos. Logos are fun and fascinating.</p>
+
+              <p>They can distill an incredible amount of information about a company and its founders into a single artifact that needs to read as well in a 16 pixel browser tab or on a billboard.</p>
+
+              <p>Done well, they provide a glimpse into your taste, world view, business ethos, and attention to detail.</p>
+
+              <p>More startups are launching now than ever, which means we should see many more great logos! But, far too many startups still start with marks that feel very generic or an afterthought. Either way, the first chance to be remembered is lost.</p>
+
+              <p>Whether for a side project or serious venture, Logo Lab helps quickly generate logo ideas that feel considered and distinctive, based on systems that already know how to hold together.</p>
+
+              <p>The tools start from specific modernist frameworks (roughly 1950s–70s), borrowed from particular designers or studios, so each output begins inside a coherent visual language instead of a blank canvas.</p>
+
+              <p><span class="intro-arrow" aria-hidden="true">↳</span>Every tool turns the underlying concept into accessible parameters and curated presets.</p>
+
+              <p><span class="intro-arrow" aria-hidden="true">↳</span>Every output has a shareable URL, a PNG/SVG export, and the ability to embed it via iframe.</p>
+
+              <p><span class="intro-arrow" aria-hidden="true">↳</span>Every embed is a live preview — click any tool name to open it with full controls and exports.</p>
+
+              <p>Keyboard: press <strong>J</strong>/<strong>K</strong> to move between sections, <strong>1–9</strong> to jump, <strong>T</strong> to return to the top.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sections"></div>
+
+      <div class="article-foot">
+        <p>Embed URLs follow <code>/logo/&lt;slug&gt;/#v=1&amp;seed=&lt;value&gt;</code> and stay stable across redesigns. Source on <a href="https://github.com/nmemodi/logo-lab" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+      </div>
+    </article>
+  </main>
+
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script src="/shared/tools-registry.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const intro = document.getElementById('logo-lab-intro');
+  const introToggle = intro ? intro.querySelector('[data-intro-toggle]') : null;
+  const introMore = document.getElementById('logo-lab-intro-more');
+  if (intro && introToggle && introMore) {
+    const introToggleLabel = introToggle.querySelector('.context-toggle__label');
+    introToggle.addEventListener('click', () => {
+      const isOpen = intro.classList.toggle('is-open');
+      introToggle.setAttribute('aria-expanded', String(isOpen));
+      introMore.setAttribute('aria-hidden', String(!isOpen));
+      if (introToggleLabel) introToggleLabel.textContent = isOpen ? 'Less context' : 'More context';
+    });
+  }
+
+  if (!window.LogoTools) {
+    console.warn('[logo-lab] landing: registry missing');
+    return;
+  }
+
+  const TOOLS = window.LogoTools.TOOLS;
+  const toolPath = window.LogoTools.toolPath;
+
+  const ORIGIN = location.origin;
+  const SEED_RE = /^[a-zA-Z0-9_-]{1,32}$/;
+
+  /* ── Utility: absolute URL for an embed (seed validated) ── */
+  function embedUrl(slug, seed) {
+    const safeSeed = (seed && SEED_RE.test(seed)) ? seed : '1';
+    return ORIGIN + toolPath(slug) + '#v=1&seed=' + safeSeed;
+  }
+
+  /* ── Build the TOC (sidebar) and sections (main) ── */
+  const toc = document.getElementById('toc');
+  const sections = document.getElementById('sections');
+
+  TOOLS.forEach((t, i) => {
+    /* Sidebar link */
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.className = 'toc-link';
+    a.href = '#' + t.slug;
+    a.textContent = t.name;
+    a.dataset.slug = t.slug;
+    li.appendChild(a);
+    toc.appendChild(li);
+
+    /* Section */
+    const sep = document.createElement('div');
+    sep.className = 'sep';
+
+    const sec = document.createElement('section');
+    sec.id = t.slug;
+    sec.dataset.slug = t.slug;
+    sec.dataset.seed = t.defaultSeed;
+
+    /* Section head: the tool title IS the link to the tool. */
+    const head = document.createElement('div');
+    head.className = 'section-head';
+
+    const h2 = document.createElement('h2');
+    h2.className = 'section-title';
+
+    const link = document.createElement('a');
+    link.className = 'section-link';
+    link.href = toolPath(t.slug) + '#v=1&seed=' + t.defaultSeed;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    const safeName = t.name.replace(/[<&>]/g, (c) => ({'<':'&lt;','&':'&amp;','>':'&gt;'}[c]));
+    link.innerHTML =
+      '<span class="section-link__icon" aria-hidden="true">' + t.svg + '</span>' +
+      '<span class="section-link__text">' + safeName + '</span>' +
+      '<svg class="section-link__arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h6v6"/><path d="M9 3L3 9"/></svg>';
+
+    h2.appendChild(link);
+    head.appendChild(h2);
+
+    const tag = document.createElement('p');
+    tag.className = 'section-tagline';
+    tag.textContent = t.tagline;
+
+    /* Blurb may contain blank-line-separated paragraphs ("\n\n"); render each
+       as its own <p> so the gap between historical context and the "The tool…"
+       follow-up is visible. */
+    const bodyParagraphs = String(t.blurb || '')
+      .split(/\n\s*\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((text) => {
+        const p = document.createElement('p');
+        p.textContent = text;
+        return p;
+      });
+
+    /* Embed surface — either a single iframe wrap, or a 2×2 variant grid. */
+    const variants = Array.isArray(t.variants) && t.variants.length > 0 ? t.variants : null;
+
+    let wrap;
+    if (variants) {
+      wrap = document.createElement('div');
+      wrap.className = 'embed-grid';
+      wrap.dataset.slug = t.slug;
+      variants.forEach((hash, vi) => {
+        const tile = document.createElement('a');
+        tile.className = 'tile';
+        tile.href = toolPath(t.slug) + '#' + hash;
+        tile.target = '_blank';
+        tile.rel = 'noopener';
+        tile.dataset.slug = t.slug;
+        tile.dataset.variant = String(vi);
+        tile.dataset.hash = hash;
+        tile.setAttribute('aria-label', t.name + ' variant ' + (vi + 1));
+        const tskel = document.createElement('div');
+        tskel.className = 'embed-skeleton';
+        tskel.textContent = '';
+        tile.appendChild(tskel);
+        wrap.appendChild(tile);
+      });
+    } else {
+      wrap = document.createElement('div');
+      wrap.className = 'embed-wrap';
+      wrap.dataset.slug = t.slug;
+
+      const skel = document.createElement('div');
+      skel.className = 'embed-skeleton';
+      skel.textContent = 'Loading ' + t.name + '…';
+      wrap.appendChild(skel);
+
+      /* Fallback (shown if iframe fails / times out) */
+      const fb = document.createElement('div');
+      fb.className = 'embed-fallback';
+      fb.innerHTML =
+        '<div>' +
+          '<div>Preview unavailable. </div>' +
+          '<a href="' + toolPath(t.slug) + '" target="_blank" rel="noopener">Open ' + t.name + ' in full &rarr;</a>' +
+        '</div>';
+      wrap.appendChild(fb);
+    }
+
+    /* Action row (secondary — Open-in-tool lives up in section-head now) */
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.innerHTML =
+      '<button type="button" data-action="copy-link" data-slug="' + t.slug + '" data-seed="' + t.defaultSeed + '">' +
+        '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5L7.5 4.5"/><path d="M6 3l1.5-1.5a2.1 2.1 0 013 3L9 6"/><path d="M6 9l-1.5 1.5a2.1 2.1 0 01-3-3L3 6"/></svg>' +
+        'Share link' +
+      '</button>';
+
+    /* Embed snippet */
+    const snip = document.createElement('details');
+    snip.className = 'embed-snippet';
+    const sum = document.createElement('summary');
+    sum.innerHTML =
+      '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l4 3-4 3"/></svg>' +
+      'Embed snippet';
+    snip.appendChild(sum);
+
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    const url = embedUrl(t.slug, t.defaultSeed);
+    code.textContent = '<iframe src="' + url + '"\n  style="width:100%;height:320px;border:0"></iframe>';
+    pre.appendChild(code);
+    const copy = document.createElement('button');
+    copy.className = 'snippet-copy';
+    copy.type = 'button';
+    copy.dataset.action = 'copy-snippet';
+    copy.dataset.snippet = code.textContent;
+    copy.textContent = 'Copy';
+    pre.appendChild(copy);
+    snip.appendChild(pre);
+
+    sec.appendChild(head);
+    sec.appendChild(tag);
+    bodyParagraphs.forEach((p) => sec.appendChild(p));
+    sec.appendChild(wrap);
+    sec.appendChild(actions);
+    sec.appendChild(snip);
+
+    /* Citation — historical logo reference. Links the work title and each
+       designer name to logobook.com when a page exists. Uses textContent
+       throughout so any user-generated string would be safely escaped. */
+    if (t.credit) {
+      const credit = document.createElement('p');
+      credit.className = 'credit';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'credit-label';
+      labelSpan.textContent = 'After';
+      credit.appendChild(labelSpan);
+
+      const linkOrSpan = (text, href) => {
+        const node = document.createElement(href ? 'a' : 'span');
+        if (href) {
+          node.href = href;
+          node.target = '_blank';
+          node.rel = 'noopener noreferrer';
+        }
+        node.textContent = text;
+        return node;
+      };
+
+      credit.appendChild(linkOrSpan(t.credit.work, t.credit.url));
+
+      const designers = Array.isArray(t.credit.designers) ? t.credit.designers : [];
+      designers.forEach((d, i) => {
+        credit.appendChild(document.createTextNode(i === 0 ? ' · ' : ', '));
+        credit.appendChild(linkOrSpan(d.name, d.url || null));
+      });
+
+      credit.appendChild(document.createTextNode(' · ' + t.credit.year));
+      sec.appendChild(credit);
+    }
+
+    sections.appendChild(sep);
+    sections.appendChild(sec);
+  });
+
+  /* ── Toast ── */
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 1600);
+  }
+
+  /* ── Clipboard with fallback ── */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    /* Fallback: hidden textarea + execCommand */
+    return new Promise((resolve, reject) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        const ok = document.execCommand('copy');
+        ok ? resolve() : reject(new Error('execCommand failed'));
+      } catch (e) { reject(e); }
+      finally { document.body.removeChild(ta); }
+    });
+  }
+
+  /* ── Click delegation for share / embed buttons ── */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    if (btn.dataset.action === 'copy-link') {
+      const slug = btn.dataset.slug;
+      const seed = btn.dataset.seed;
+      const url = embedUrl(slug, seed);
+      copyText(url)
+        .then(() => {
+          btn.classList.add('is-copied');
+          showToast('Link copied');
+          setTimeout(() => btn.classList.remove('is-copied'), 1400);
+        })
+        .catch(() => showToast('Copy failed'));
+    }
+
+    if (btn.dataset.action === 'copy-snippet') {
+      copyText(btn.dataset.snippet)
+        .then(() => {
+          btn.textContent = 'Copied';
+          btn.classList.add('is-copied');
+          setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.classList.remove('is-copied');
+          }, 1400);
+        })
+        .catch(() => showToast('Copy failed'));
+    }
+  });
+
+  /* ── Lazy-mount iframes via IntersectionObserver ── */
+  const MOUNT_MARGIN = '500px';
+  const mountedSlugs = new Set();
+
+  function mountSection(sec) {
+    const slug = sec.dataset.slug;
+    if (mountedSlugs.has(slug)) return;
+    mountedSlugs.add(slug);
+
+    /* Variant-grid mode: mount one iframe per tile */
+    const grid = sec.querySelector('.embed-grid');
+    if (grid) {
+      Array.from(grid.querySelectorAll('a.tile')).forEach((tile) => {
+        const hash = tile.dataset.hash;
+        const iframe = document.createElement('iframe');
+        iframe.src = ORIGIN + toolPath(slug) + '#' + hash;
+        iframe.setAttribute('title', slug + ' variant ' + tile.dataset.variant + ' preview');
+        iframe.setAttribute('loading', 'lazy');
+        iframe.setAttribute('scrolling', 'no');
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.setAttribute('tabindex', '-1');
+
+        let settled = false;
+        const settle = (ok) => {
+          if (settled) return;
+          settled = true;
+          tile.classList.add(ok ? 'is-ready' : 'is-failed');
+        };
+        iframe.addEventListener('load', () => settle(true));
+        iframe.addEventListener('error', () => settle(false));
+        setTimeout(() => {
+          if (!settled) {
+            console.warn('[logo-lab] grid iframe timeout', slug, tile.dataset.variant);
+            settle(false);
+          }
+        }, 6000);
+
+        tile.insertBefore(iframe, tile.querySelector('.embed-skeleton'));
+      });
+      return;
+    }
+
+    /* Single-iframe mode (default) */
+    const wrap = sec.querySelector('.embed-wrap');
+    const seed = sec.dataset.seed;
+
+    const iframe = document.createElement('iframe');
+    iframe.src = embedUrl(slug, seed);
+    iframe.setAttribute('title', slug + ' preview');
+    iframe.setAttribute('loading', 'lazy');
+    iframe.setAttribute('scrolling', 'no');
+
+    let settled = false;
+    const settle = (ok) => {
+      if (settled) return;
+      settled = true;
+      if (ok) wrap.classList.add('is-ready');
+      else     wrap.classList.add('is-failed');
+    };
+
+    iframe.addEventListener('load', () => settle(true));
+    iframe.addEventListener('error', () => settle(false));
+
+    /* Hard 5s timeout — if the iframe hasn't settled, show fallback. */
+    setTimeout(() => {
+      if (!settled) {
+        console.warn('[logo-lab] landing: iframe timeout for', slug);
+        settle(false);
+      }
+    }, 5000);
+
+    wrap.insertBefore(iframe, wrap.querySelector('.embed-skeleton'));
+  }
+
+  const mountObserver = ('IntersectionObserver' in window)
+    ? new IntersectionObserver((entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            mountSection(en.target);
+            mountObserver.unobserve(en.target);
+          }
+        });
+      }, { rootMargin: MOUNT_MARGIN })
+    : null;
+
+  const allSections = Array.from(document.querySelectorAll('section[data-slug]'));
+  if (mountObserver) {
+    allSections.forEach((s) => mountObserver.observe(s));
+  } else {
+    allSections.forEach(mountSection);
+  }
+
+  /* ── Tool anchor clicks force immediate mount of the target section ── */
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const slug = a.dataset.slug || decodeURIComponent(a.getAttribute('href').slice(1));
+    const sec = document.getElementById(slug);
+    if (sec && sec.matches('section[data-slug]')) mountSection(sec);
+  });
+
+  /* ── Active-section highlighting in the sidebar ── */
+  const tocLinks = Array.from(document.querySelectorAll('a.toc-link'));
+  const linkBySlug = new Map(tocLinks.map((l) => [l.dataset.slug, l]));
+
+  if ('IntersectionObserver' in window) {
+    const visible = new Set();
+    const activeObserver = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting) visible.add(en.target.dataset.slug);
+        else visible.delete(en.target.dataset.slug);
+      });
+      /* First visible in document order wins */
+      const orderedSlugs = TOOLS.map((t) => t.slug).filter((s) => visible.has(s));
+      const winner = orderedSlugs[0];
+      tocLinks.forEach((l) => l.classList.toggle('is-active', l.dataset.slug === winner));
+    }, { rootMargin: '-40% 0px -50% 0px' });
+    allSections.forEach((s) => activeObserver.observe(s));
+  }
+
+  /* ── postMessage listener — iframes post their scrollHeight ── */
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin) return;
+    if (!e.data || e.data.source !== 'logo-lab-embed') return;
+    const h = e.data.height;
+    if (typeof h !== 'number' || !isFinite(h) || h <= 0 || h > 2000) return;
+
+    /* Find the iframe whose contentWindow is the sender */
+    const iframes = document.querySelectorAll('.embed-wrap iframe');
+    for (let i = 0; i < iframes.length; i++) {
+      if (iframes[i].contentWindow === e.source) {
+        iframes[i].style.height = h + 'px';
+        return;
+      }
+    }
+  });
+
+  /* ── Keyboard: J/K cycle, 1-9 jump, T back to top ── */
+  function scrollToSlug(slug) {
+    const sec = document.getElementById(slug);
+    if (!sec) return;
+    mountSection(sec);
+    sec.scrollIntoView({ behavior: (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'), block: 'start' });
+    history.replaceState(null, '', '#' + slug);
+  }
+
+  function currentSlugInView() {
+    /* Pick the section whose top is closest to (but at or above) the centre of the viewport */
+    const mid = innerHeight * 0.3;
+    let best = null; let bestDist = Infinity;
+    allSections.forEach((s) => {
+      const r = s.getBoundingClientRect();
+      const d = Math.abs(r.top - mid);
+      if (r.top < innerHeight && r.bottom > 0 && d < bestDist) { best = s; bestDist = d; }
+    });
+    return best ? best.dataset.slug : TOOLS[0].slug;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tgt = e.target;
+    if (tgt && tgt.matches && tgt.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+    if (e.key === 'j' || e.key === 'J') {
+      const cur = currentSlugInView();
+      const idx = TOOLS.findIndex((t) => t.slug === cur);
+      const next = TOOLS[Math.min(idx + 1, TOOLS.length - 1)];
+      scrollToSlug(next.slug);
+      e.preventDefault();
+    } else if (e.key === 'k' || e.key === 'K') {
+      const cur = currentSlugInView();
+      const idx = TOOLS.findIndex((t) => t.slug === cur);
+      const prev = TOOLS[Math.max(idx - 1, 0)];
+      scrollToSlug(prev.slug);
+      e.preventDefault();
+    } else if (e.key === 't' || e.key === 'T') {
+      window.scrollTo({ top: 0, behavior: (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth') });
+      history.replaceState(null, '', location.pathname);
+      e.preventDefault();
+    } else if (/^[1-9]$/.test(e.key)) {
+      const idx = parseInt(e.key, 10) - 1;
+      if (idx < TOOLS.length) {
+        scrollToSlug(TOOLS[idx].slug);
+        e.preventDefault();
+      }
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>

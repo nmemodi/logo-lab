@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brutalist Letters — Logo Lab</title>
+<meta name="description" content="Cut letters out of solid blocks with right-angle paths. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+<meta property="og:title" content="Brutalist Letters — Logo Lab">
+<meta property="og:description" content="Cut letters out of solid blocks with right-angle paths.">
+<meta property="og:image" content="https://natemodi.com/logo/brutalist-letters/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Brutalist Letters logo variations from Logo Lab.">
+<meta property="og:url" content="https://natemodi.com/logo/brutalist-letters/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Brutalist Letters — Logo Lab">
+<meta name="twitter:description" content="Cut letters out of solid blocks with right-angle paths.">
+<meta name="twitter:image" content="https://natemodi.com/logo/brutalist-letters/og-image.png">
+<meta name="twitter:image:alt" content="Four Brutalist Letters logo variations from Logo Lab.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/shared/tools-shared.css">
+<style>
+  canvas { box-shadow: var(--shadow-canvas); }
+</style>
+</head>
+<body>
+
+<div class="tool-sidebar">
+  <div class="tool-header">
+    <h1 class="tool-header__title">Brutalist Letters</h1>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Character</div>
+    <input type="text" id="charInput" value="G" maxlength="1">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Quick Pick</div>
+    <div class="picker-grid picker-grid--letters" id="letterGrid"></div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Shape</div>
+    <label>
+      Corner
+      <span class="control-val" id="cornerRadiusVal">22%</span>
+    </label>
+    <input type="range" id="cornerRadius" min="0" max="50" value="22">
+    <label>
+      Padding
+      <span class="control-val" id="paddingVal">8%</span>
+    </label>
+    <input type="range" id="padding" min="0" max="25" value="8">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Line Cuts</div>
+    <label>
+      Width
+      <span class="control-val" id="lineWidthVal">22%</span>
+    </label>
+    <input type="range" id="lineWidth" min="5" max="45" value="22">
+    <label>
+      Depth
+      <span class="control-val" id="depthMultVal">100%</span>
+    </label>
+    <input type="range" id="depthMult" min="30" max="200" value="100">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Color</div>
+    <label>Background</label>
+    <div class="color-row">
+      <input type="color" id="bgColor" value="#ffffff">
+      <span class="color-hex" id="bgColorVal">#ffffff</span>
+    </div>
+    <label>Shape</label>
+    <div class="color-row">
+      <input type="color" id="fgColor" value="#111111">
+      <span class="color-hex" id="fgColorVal">#111111</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label>Presets</label>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Export</div>
+    <button class="btn btn-primary btn-full btn-export">Export</button>
+  </div>
+</div>
+
+<div class="tool-canvas tool-canvas--centered">
+  <canvas id="c" width="800" height="800"></canvas>
+</div>
+
+<script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+<script src="/shared/rng.js"></script>
+<script src="/shared/permalink.js"></script>
+<script src="/shared/tools-export.js"></script>
+<script src="/shared/tools-registry.js"></script>
+<script>
+// ─── Letter cut definitions ───
+// Each cut is a path: array of [x,y] points in 0-1 normalized coords.
+// Points at edges (0 or 1) connect to the shape boundary.
+// Horizontal and vertical segments are drawn as thick rectangles (lineWidth).
+// Diagonal segments are drawn as stroked lines; paths containing any diagonal
+// are rendered as a single polyline with miter joins and square caps.
+const CUTS = {
+  'A': [{path:[[.5,1],[.5,.7]]}, {path:[[.325,.3],[.675,.3]]}],
+  'B': [{path:[[.4,.33],[.75,.33]]}, {path:[[.4,.67],[.75,.67]]}],
+  'C': [{path:[[1,.5],[.38,.5]]}],
+  'D': [{path:[[.3,.25],[.3,.75]]}],
+  'E': [{path:[[1,.3],[.42,.3]]}, {path:[[1,.7],[.42,.7]]}],
+  'F': [{path:[[1,.3],[.42,.3]]}, {path:[[1,.6],[.42,.6],[.42,1]]}],
+  'G': [{path:[[1,.32],[.52,.32],[.52,.68]]}],
+  'H': [{path:[[.5,0],[.5,.25]]}, {path:[[.5,1],[.5,.75]]}],
+  'I': [{path:[[0,.5],[.25,.5]]}, {path:[[1,.5],[.75,.5]]}],
+  'J': [{path:[[0,.65],[.55,.65]]}],
+  'K': [{path:[[1,.2],[.4,.5],[1,.8]]}],
+  'L': [{path:[[.4,0],[.4,.72],[1,.72]]}],
+  'M': [{path:[[.33,1],[.33,.45]]}, {path:[[.67,1],[.67,.45]]}],
+  'N': [{path:[[.65,1],[.65,.4]]}],
+  'O': [{path:[[.35,.5],[.65,.5]]}],
+  'P': [{path:[[.45,.3],[.7,.3]]}, {path:[[1,.65],[.5,.65],[.5,1]]}],
+  'Q': [{path:[[.35,.3],[.65,.3]]}, {path:[[1,.65],[.75,.65]]}],
+  'R': [{path:[[.4,.3],[.6,.3]]}, {path:[[.4,1],[.4,.65]]}, {path:[[1,.6],[1.1,1]]}],
+  'S': [{path:[[1,.3],[.48,.3]]}, {path:[[0,.7],[.52,.7]]}],
+  'T': [{path:[[0,1],[0,.35]]}, {path:[[1,1],[1,.35]]}],
+  'U': [{path:[[.5,0],[.5,.58]]}],
+  'V': [{path:[[.5,0],[.5,.7]]}],
+  'W': [{path:[[.29,0],[.29,.55]]}, {path:[[.71,0],[.71,.55]]}],
+  'X': [{path:[[0,0],[1,1]]}, {path:[[1,0],[0,1]]}],
+  'Y': [{path:[[0,0],[.5,.5],[1,0]]}, {path:[[.5,.5],[.5,1]]}],
+  'Z': [{path:[[0,.32],[.55,.32]]}, {path:[[1,.68],[.45,.68]]}],
+  '0': [{path:[[.5,.35],[.5,.65]]}],
+  '1': [{path:[[.1,1],[.1,.3]]}],
+  '2': [{path:[[0,.35],[.55,.35],[.55,0]]}, {path:[[1,.65],[.45,.65],[.45,1]]}],
+  '3': [{path:[[0,.33],[.52,.33]]}, {path:[[0,.67],[.52,.67]]}],
+  '4': [{path:[[.55,1],[.55,.32],[0,.32]]}],
+  '5': [{path:[[1,.35],[.45,.35],[.45,0]]}, {path:[[0,.65],[.55,.65],[.55,1]]}],
+  '6': [{path:[[1,.28],[.5,.28]]}, {path:[[.35,.68],[.65,.68]]}],
+  '7': [{path:[[0,.3],[.42,.3],[.42,1]]}],
+  '8': [{path:[[.35,.32],[.65,.32]]}, {path:[[.35,.68],[.65,.68]]}],
+  '9': [{path:[[0,.72],[.5,.72]]}, {path:[[.35,.32],[.65,.32]]}],
+};
+
+const state = {
+  letter: 'G', bgColor: '#ffffff', fgColor: '#111111',
+  size: 800, padding: 0.08, cornerRadius: 0.22,
+  lineWidth: 0.22, depthMult: 1.0,
+};
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function draw() {
+  const s = state.size;
+  canvas.width = s; canvas.height = s;
+  renderToCanvas(ctx, s, s, { transparent: false });
+
+  const canvasArea = document.querySelector('.tool-canvas');
+  const maxD = Math.min(canvasArea.clientWidth * 0.9, canvasArea.clientHeight * 0.9, 700);
+  canvas.style.width = maxD + 'px'; canvas.style.height = maxD + 'px';
+}
+
+function renderToCanvas(c, w, h, opts) {
+  const s = w;
+  const pad = s * state.padding;
+  const ss = s - pad * 2;
+  const r = state.cornerRadius * ss / 2;
+  const lw = state.lineWidth * ss;
+  const hw = lw / 2;
+  const dm = state.depthMult;
+
+  // Background
+  if (!opts || !opts.transparent) {
+    c.fillStyle = state.bgColor;
+    c.fillRect(0, 0, s, s);
+  }
+
+  // Rounded square
+  c.fillStyle = state.fgColor;
+  roundRect(c, pad, pad, ss, ss, r);
+  c.fill();
+
+  // Draw cuts
+  const cuts = CUTS[state.letter] || [];
+  c.fillStyle = state.bgColor;
+
+  for (const cut of cuts) {
+    // Apply depth multiplier — scale interior points away from center
+    const sp = cut.path.map(([x, y]) => {
+      const ex = (x <= 0.001 || x >= 0.999);
+      const ey = (y <= 0.001 || y >= 0.999);
+      return [
+        ex ? x : Math.max(0, Math.min(1, 0.5 + (x - 0.5) * dm)),
+        ey ? y : Math.max(0, Math.min(1, 0.5 + (y - 0.5) * dm)),
+      ];
+    });
+
+    let hasDiagonal = false;
+    for (let i = 0; i < sp.length - 1; i++) {
+      const [x1n, y1n] = sp[i];
+      const [x2n, y2n] = sp[i + 1];
+      if (Math.abs(x1n - x2n) > 0.001 && Math.abs(y1n - y2n) > 0.001) {
+        hasDiagonal = true; break;
+      }
+    }
+    if (hasDiagonal) {
+      c.save();
+      c.lineWidth = lw;
+      c.lineCap = 'square';
+      c.lineJoin = 'miter';
+      c.strokeStyle = state.bgColor;
+      c.beginPath();
+      for (let i = 0; i < sp.length; i++) {
+        const [xn, yn] = sp[i];
+        const x = pad + xn * ss, y = pad + yn * ss;
+        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.stroke();
+      c.restore();
+      continue;
+    }
+
+    for (let i = 0; i < sp.length - 1; i++) {
+      const [x1n, y1n] = sp[i];
+      const [x2n, y2n] = sp[i + 1];
+      const x1 = pad + x1n * ss, y1 = pad + y1n * ss;
+      const x2 = pad + x2n * ss, y2 = pad + y2n * ss;
+
+      if (Math.abs(x1n - x2n) < 0.001) {
+        const x = (x1 + x2) / 2;
+        let top = Math.min(y1, y2), bot = Math.max(y1, y2);
+        if (Math.min(y1n, y2n) <= 0.001) top = 0; else top -= hw;
+        if (Math.max(y1n, y2n) >= 0.999) bot = s; else bot += hw;
+        c.fillRect(x - hw, top, lw, bot - top);
+      } else {
+        const y = (y1 + y2) / 2;
+        let left = Math.min(x1, x2), right = Math.max(x1, x2);
+        if (Math.min(x1n, x2n) <= 0.001) left = 0; else left -= hw;
+        if (Math.max(x1n, x2n) >= 0.999) right = s; else right += hw;
+        c.fillRect(left, y - hw, right - left, lw);
+      }
+    }
+  }
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x+r, y); c.lineTo(x+w-r, y);
+  c.quadraticCurveTo(x+w, y, x+w, y+r); c.lineTo(x+w, y+h-r);
+  c.quadraticCurveTo(x+w, y+h, x+w-r, y+h); c.lineTo(x+r, y+h);
+  c.quadraticCurveTo(x, y+h, x, y+h-r); c.lineTo(x, y+r);
+  c.quadraticCurveTo(x, y, x+r, y); c.closePath();
+}
+
+function generateSVG() {
+  const s = state.size, pad = s * state.padding, ss = s - pad * 2;
+  const r = state.cornerRadius * ss / 2, lw = state.lineWidth * ss;
+  const hw = lw / 2, dm = state.depthMult;
+  const cuts = CUTS[state.letter] || [];
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">\n`;
+  svg += `<rect width="${s}" height="${s}" fill="${state.bgColor}"/>\n`;
+  svg += `<rect x="${pad}" y="${pad}" width="${ss}" height="${ss}" rx="${r}" ry="${r}" fill="${state.fgColor}"/>\n`;
+
+  for (const cut of cuts) {
+    const sp = cut.path.map(([x, y]) => {
+      const ex = (x <= 0.001 || x >= 0.999);
+      const ey = (y <= 0.001 || y >= 0.999);
+      return [
+        ex ? x : Math.max(0, Math.min(1, 0.5 + (x - 0.5) * dm)),
+        ey ? y : Math.max(0, Math.min(1, 0.5 + (y - 0.5) * dm)),
+      ];
+    });
+
+    let hasDiagonal = false;
+    for (let i = 0; i < sp.length - 1; i++) {
+      const [x1n, y1n] = sp[i];
+      const [x2n, y2n] = sp[i + 1];
+      if (Math.abs(x1n - x2n) > 0.001 && Math.abs(y1n - y2n) > 0.001) {
+        hasDiagonal = true; break;
+      }
+    }
+    if (hasDiagonal) {
+      const pts = sp.map(([xn, yn]) => `${(pad + xn * ss).toFixed(1)},${(pad + yn * ss).toFixed(1)}`).join(' ');
+      svg += `<polyline points="${pts}" fill="none" stroke="${state.bgColor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="square" stroke-linejoin="miter"/>\n`;
+      continue;
+    }
+
+    for (let i = 0; i < sp.length - 1; i++) {
+      const [x1n, y1n] = sp[i];
+      const [x2n, y2n] = sp[i + 1];
+      const x1 = pad + x1n * ss, y1 = pad + y1n * ss;
+      const x2 = pad + x2n * ss, y2 = pad + y2n * ss;
+      let rx, ry, rw, rh;
+
+      if (Math.abs(x1n - x2n) < 0.001) {
+        const x = (x1 + x2) / 2;
+        let top = Math.min(y1, y2), bot = Math.max(y1, y2);
+        if (Math.min(y1n, y2n) <= 0.001) top = 0; else top -= hw;
+        if (Math.max(y1n, y2n) >= 0.999) bot = s; else bot += hw;
+        rx = x - hw; ry = top; rw = lw; rh = bot - top;
+      } else {
+        const y = (y1 + y2) / 2;
+        let left = Math.min(x1, x2), right = Math.max(x1, x2);
+        if (Math.min(x1n, x2n) <= 0.001) left = 0; else left -= hw;
+        if (Math.max(x1n, x2n) >= 0.999) right = s; else right += hw;
+        rx = left; ry = y - hw; rw = right - left; rh = lw;
+      }
+      svg += `<rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="${rw.toFixed(1)}" height="${rh.toFixed(1)}" fill="${state.bgColor}"/>\n`;
+    }
+  }
+  return svg + `</svg>`;
+}
+
+// ─── UI ───
+const charInput = document.getElementById('charInput');
+const grid = document.getElementById('letterGrid');
+
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('').forEach(ch => {
+  const btn = document.createElement('button');
+  btn.className = 'picker-btn' + (ch === state.letter ? ' active' : '');
+  btn.textContent = ch;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.picker-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.letter = ch; charInput.value = ch; draw();
+  });
+  grid.appendChild(btn);
+});
+
+charInput.addEventListener('input', () => {
+  let v = charInput.value.toUpperCase().slice(-1);
+  charInput.value = v;
+  if (v) {
+    state.letter = v;
+    document.querySelectorAll('.picker-btn').forEach(b => b.classList.toggle('active', b.textContent === v));
+    draw();
+  }
+});
+charInput.addEventListener('focus', () => charInput.select());
+
+function wireSlider(id, prop, transform, suffix) {
+  const el = document.getElementById(id), val = document.getElementById(id + 'Val');
+  el.addEventListener('input', () => {
+    state[prop] = transform(parseFloat(el.value));
+    if (val) val.textContent = el.value + (suffix || '');
+    draw();
+  });
+}
+wireSlider('cornerRadius', 'cornerRadius', v => v/100, '%');
+wireSlider('padding', 'padding', v => v/100, '%');
+wireSlider('lineWidth', 'lineWidth', v => v/100, '%');
+wireSlider('depthMult', 'depthMult', v => v/100, '%');
+
+function bindColor(id, prop) {
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(id + 'Val');
+  el.addEventListener('input', e => {
+    state[prop] = e.target.value;
+    valEl.textContent = e.target.value;
+    draw();
+  });
+}
+bindColor('bgColor', 'bgColor');
+bindColor('fgColor', 'fgColor');
+
+// ─── Permalink ───
+const { INT_RANGE, COLOR, TEXT, WEIGHTED_INT_RANGE } = window.LogoSchema;
+/* Variants: cr=16 (all), dp 132-147 (high), lw 14-18, pa 12 (all).
+   Tightenings keep the brutalist "deep extrusion + chunky stroke" feel. */
+const schema = {
+  ch: TEXT({ charset: /^[A-Z0-9]$/, maxLen: 1, def: 'G' }),
+  bg: COLOR('#ffffff'),
+  fg: COLOR('#111111'),
+  cr: WEIGHTED_INT_RANGE(0, 50, 22, { rmin: 10, rmax: 24 }),
+  pa: WEIGHTED_INT_RANGE(0, 25, 8,  { rmin: 8,  rmax: 16 }),
+  lw: WEIGHTED_INT_RANGE(5, 45, 22, { rmin: 12, rmax: 24 }),
+  dp: WEIGHTED_INT_RANGE(30, 200, 100, { rmin: 110, rmax: 165 }),
+};
+
+function getState() {
+  return {
+    ch: state.letter,
+    bg: state.bgColor,
+    fg: state.fgColor,
+    cr: Math.round(state.cornerRadius * 100),
+    pa: Math.round(state.padding * 100),
+    lw: Math.round(state.lineWidth * 100),
+    dp: Math.round(state.depthMult * 100),
+  };
+}
+
+function applyState(s) {
+  state.letter = s.ch;
+  state.bgColor = s.bg;
+  state.fgColor = s.fg;
+  state.cornerRadius = s.cr / 100;
+  state.padding = s.pa / 100;
+  state.lineWidth = s.lw / 100;
+  state.depthMult = s.dp / 100;
+
+  charInput.value = state.letter;
+  document.querySelectorAll('.picker-btn').forEach(b => b.classList.toggle('active', b.textContent === state.letter));
+  document.getElementById('bgColor').value = state.bgColor;
+  document.getElementById('bgColorVal').textContent = state.bgColor;
+  document.getElementById('fgColor').value = state.fgColor;
+  document.getElementById('fgColorVal').textContent = state.fgColor;
+  const setSlider = (id, rawVal, suffix) => {
+    const el = document.getElementById(id);
+    const val = document.getElementById(id + 'Val');
+    if (el) el.value = rawVal;
+    if (val) val.textContent = rawVal + (suffix || '');
+  };
+  setSlider('cornerRadius', s.cr, '%');
+  setSlider('padding', s.pa, '%');
+  setSlider('lineWidth', s.lw, '%');
+  setSlider('depthMult', s.dp, '%');
+
+  draw();
+}
+
+const pm = new window.PermalinkManager({
+  toolName: 'brutalist-letters',
+  schema, getState, applyState,
+});
+
+// Hook all input events to live-update the URL
+['charInput', 'bgColor', 'fgColor', 'cornerRadius', 'padding', 'lineWidth', 'depthMult'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => pm.update());
+});
+document.querySelectorAll('.picker-btn').forEach(btn => btn.addEventListener('click', () => pm.update()));
+
+// ─── Export ───
+new ToolExporter({
+  toolName: 'brutalist-letters',
+  getCanvas: () => canvas,
+  getSVG: () => generateSVG(),
+  renderToCanvas: (c, w, h, opts) => renderToCanvas(c, w, h, opts),
+  getBackgroundColor: () => state.bgColor,
+  baseWidth: 800,
+  baseHeight: 800,
+  getPermalink: () => pm.getPermalink(),
+  flushPermalink: () => pm.flush(),
+});
+
+window.addEventListener('resize', draw);
+draw();
+pm.decode();
+pm.setupPresets();
+</script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dot Grid — Logo Lab</title>
+<meta name="description" content="Letters bitmap-rendered from a rounded-rectangle dot grid. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+<meta property="og:title" content="Dot Grid — Logo Lab">
+<meta property="og:description" content="Letters bitmap-rendered from a rounded-rectangle dot grid.">
+<meta property="og:image" content="https://natemodi.com/logo/dot-grid/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Dot Grid logo variations from Logo Lab.">
+<meta property="og:url" content="https://natemodi.com/logo/dot-grid/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Dot Grid — Logo Lab">
+<meta name="twitter:description" content="Letters bitmap-rendered from a rounded-rectangle dot grid.">
+<meta name="twitter:image" content="https://natemodi.com/logo/dot-grid/og-image.png">
+<meta name="twitter:image:alt" content="Four Dot Grid logo variations from Logo Lab.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/shared/tools-shared.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Archivo+Black&family=Playfair+Display:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Tool-specific overrides only */
+  canvas { box-shadow: var(--shadow-canvas); }
+</style>
+</head>
+<body>
+
+<div class="tool-sidebar">
+  <div class="tool-header">
+    <h1 class="tool-header__title">Dot Grid</h1>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Character</div>
+    <input type="text" id="charInput" value="L" maxlength="1">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Quick Pick</div>
+    <div class="picker-grid picker-grid--letters" id="letterGrid"></div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Font</div>
+    <label>Family</label>
+    <select id="fontFamily">
+      <option value="Archivo Black" selected>Archivo Black</option>
+      <option value="Inter">Inter</option>
+      <option value="Playfair Display">Playfair Display</option>
+      <option value="Space Mono">Space Mono</option>
+      <option value="Arial">Arial</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Impact">Impact</option>
+      <option value="Courier New">Courier New</option>
+    </select>
+    <label>Weight</label>
+    <select id="fontWeight">
+      <option value="400">Regular</option>
+      <option value="700">Bold</option>
+      <option value="900" selected>Black</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Grid</div>
+    <label>Density <span class="control-val" id="gridColsVal">12</span></label>
+    <input type="range" id="gridCols" min="5" max="32" value="12">
+    <label>Dot Size <span class="control-val" id="dotSizeVal">92%</span></label>
+    <input type="range" id="dotSize" min="40" max="100" value="92">
+    <label>Threshold <span class="control-val" id="thresholdVal">30%</span></label>
+    <input type="range" id="threshold" min="5" max="95" value="30">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Shapes</div>
+    <label>Dot</label>
+    <select id="dotShape">
+      <option value="circle" selected>Circle</option>
+      <option value="square">Square</option>
+      <option value="rounded-square">Rounded Square</option>
+      <option value="diamond">Diamond</option>
+      <option value="hexagon">Hexagon</option>
+      <option value="triangle">Triangle</option>
+    </select>
+    <label>Backdrop</label>
+    <select id="backdropShape">
+      <option value="square" selected>Square</option>
+      <option value="circle">Circle</option>
+      <option value="none">None</option>
+    </select>
+    <label>Corner <span class="control-val" id="backdropRadiusVal">0%</span></label>
+    <input type="range" id="backdropRadius" min="0" max="50" value="0">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Layout</div>
+    <label>Margin <span class="control-val" id="marginVal">3%</span></label>
+    <input type="range" id="margin" min="0" max="15" value="3">
+    <label>Padding <span class="control-val" id="paddingVal">10%</span></label>
+    <input type="range" id="padding" min="0" max="25" value="10">
+    <label>Scale <span class="control-val" id="letterScaleVal">90%</span></label>
+    <input type="range" id="letterScale" min="50" max="150" value="90">
+    <label>Offset X <span class="control-val" id="offsetXVal">0%</span></label>
+    <input type="range" id="offsetX" min="-30" max="30" value="0">
+    <label>Offset Y <span class="control-val" id="offsetYVal">0%</span></label>
+    <input type="range" id="offsetY" min="-30" max="30" value="0">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Color</div>
+    <label>Background</label>
+    <div class="color-row">
+      <input type="color" id="bgColor" value="#cc0000">
+      <span class="color-hex" id="bgColorVal">#cc0000</span>
+    </div>
+    <label>Backdrop</label>
+    <div class="color-row">
+      <input type="color" id="backdropColor" value="#ffffff">
+      <span class="color-hex" id="backdropColorVal">#ffffff</span>
+    </div>
+    <label>Dots</label>
+    <div class="color-row">
+      <input type="color" id="dotColor" value="#cc0000">
+      <span class="color-hex" id="dotColorVal">#cc0000</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Options</div>
+    <label class="toggle-row">
+      <input type="checkbox" id="invert">
+      <span>Invert (dots outside letter)</span>
+    </label>
+  </div>
+
+  <div class="control-group">
+    <label>Presets</label>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="control-group">
+    <button class="btn btn-primary btn-full btn-export" id="openExport">Export</button>
+  </div>
+</div>
+
+<div class="tool-canvas tool-canvas--centered">
+  <canvas id="c" width="800" height="800"></canvas>
+</div>
+
+<script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+<script src="/shared/rng.js"></script>
+<script src="/shared/permalink.js"></script>
+<script src="/shared/tools-export.js"></script>
+<script src="/shared/tools-registry.js"></script>
+<script src="/shared/font-detect.js"></script>
+<script>
+const state = {
+  letter: 'L',
+  fontFamily: 'Archivo Black',
+  fontWeight: '900',
+  gridCols: 12,
+  dotSize: 0.92,
+  dotShape: 'circle',
+  backdropShape: 'square',
+  backdropRadius: 0,
+  bgColor: '#cc0000',
+  backdropColor: '#ffffff',
+  dotColor: '#cc0000',
+  margin: 0.03,
+  padding: 0.10,
+  letterScale: 0.90,
+  offsetX: 0,
+  offsetY: 0,
+  threshold: 0.30,
+  invert: false,
+  size: 800,
+};
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// ─── Letter sampling via offscreen canvas ───
+function sampleLetter() {
+  const cols = state.gridCols;
+  const rows = cols;
+  const res = 500;
+
+  const off = document.createElement('canvas');
+  off.width = res; off.height = res;
+  const oc = off.getContext('2d');
+
+  oc.clearRect(0, 0, res, res);
+  oc.fillStyle = '#000';
+  oc.textAlign = 'center';
+  oc.textBaseline = 'middle';
+
+  const fontSize = res * state.letterScale;
+  oc.font = `${state.fontWeight} ${fontSize}px "${state.fontFamily}"`;
+  const ox = res / 2 + state.offsetX * res;
+  const oy = res / 2 + state.offsetY * res;
+  oc.fillText(state.letter, ox, oy);
+
+  const data = oc.getImageData(0, 0, res, res).data;
+  const grid = [];
+  const cellW = res / cols;
+  const cellH = res / rows;
+  const samples = 3;
+
+  for (let r = 0; r < rows; r++) {
+    grid[r] = [];
+    for (let c = 0; c < cols; c++) {
+      let total = 0;
+      const sx = c * cellW;
+      const sy = r * cellH;
+      for (let dy = 0; dy < samples; dy++) {
+        for (let dx = 0; dx < samples; dx++) {
+          const px = Math.min(res - 1, Math.floor(sx + (dx + 0.5) / samples * cellW));
+          const py = Math.min(res - 1, Math.floor(sy + (dy + 0.5) / samples * cellH));
+          total += data[(py * res + px) * 4 + 3];
+        }
+      }
+      const coverage = total / (samples * samples * 255);
+      const on = coverage > state.threshold;
+      grid[r][c] = state.invert ? !on : on;
+    }
+  }
+  return { grid, cols, rows };
+}
+
+// ─── Shape drawing helpers ───
+function drawDotOnCanvas(ctx, cx, cy, size, shape) {
+  const r = size / 2;
+  ctx.beginPath();
+  switch (shape) {
+    case 'circle':
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      break;
+    case 'square':
+      ctx.rect(cx - r, cy - r, size, size);
+      break;
+    case 'rounded-square': {
+      const cr = r * 0.3;
+      const x = cx - r, y = cy - r;
+      ctx.moveTo(x + cr, y);
+      ctx.lineTo(x + size - cr, y);
+      ctx.quadraticCurveTo(x + size, y, x + size, y + cr);
+      ctx.lineTo(x + size, y + size - cr);
+      ctx.quadraticCurveTo(x + size, y + size, x + size - cr, y + size);
+      ctx.lineTo(x + cr, y + size);
+      ctx.quadraticCurveTo(x, y + size, x, y + size - cr);
+      ctx.lineTo(x, y + cr);
+      ctx.quadraticCurveTo(x, y, x + cr, y);
+      break;
+    }
+    case 'diamond':
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r, cy);
+      break;
+    case 'hexagon':
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 3 * i - Math.PI / 6;
+        const px = cx + r * Math.cos(a);
+        const py = cy + r * Math.sin(a);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      break;
+    case 'triangle':
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r * Math.cos(Math.PI / 6), cy + r * Math.sin(Math.PI / 6));
+      ctx.lineTo(cx - r * Math.cos(Math.PI / 6), cy + r * Math.sin(Math.PI / 6));
+      break;
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y); c.lineTo(x + w - r, y);
+  c.quadraticCurveTo(x + w, y, x + w, y + r); c.lineTo(x + w, y + h - r);
+  c.quadraticCurveTo(x + w, y + h, x + w - r, y + h); c.lineTo(x + r, y + h);
+  c.quadraticCurveTo(x, y + h, x, y + h - r); c.lineTo(x, y + r);
+  c.quadraticCurveTo(x, y, x + r, y); c.closePath();
+}
+
+// ─── Compute grid layout (shared by draw + SVG) ───
+function computeLayout(s) {
+  const m = s * state.margin;
+  const bx = m, by = m, bw = s - m * 2, bh = s - m * 2;
+  const pad = bw * state.padding;
+  const gx = bx + pad, gy = by + pad;
+  const gw = bw - pad * 2, gh = bh - pad * 2;
+  const cols = state.gridCols, rows = cols;
+  const cellSize = Math.min(gw / cols, gh / rows);
+  const gridW = cellSize * cols, gridH = cellSize * rows;
+  const startX = gx + (gw - gridW) / 2;
+  const startY = gy + (gh - gridH) / 2;
+  const dotR = cellSize * state.dotSize;
+  const br = state.backdropRadius * Math.min(bw, bh) / 2;
+  return { bx, by, bw, bh, br, cols, rows, cellSize, startX, startY, dotR };
+}
+
+// ─── Main draw ───
+function draw() {
+  const s = state.size;
+  canvas.width = s; canvas.height = s;
+
+  const { grid, cols, rows } = sampleLetter();
+  const lay = computeLayout(s);
+
+  // Background
+  ctx.fillStyle = state.bgColor;
+  ctx.fillRect(0, 0, s, s);
+
+  // Backdrop
+  if (state.backdropShape !== 'none') {
+    ctx.fillStyle = state.backdropColor;
+    if (state.backdropShape === 'circle') {
+      ctx.beginPath();
+      ctx.arc(s / 2, s / 2, Math.min(lay.bw, lay.bh) / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      roundRect(ctx, lay.bx, lay.by, lay.bw, lay.bh, lay.br);
+      ctx.fill();
+    }
+  }
+
+  // Dots
+  ctx.fillStyle = state.dotColor;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c]) {
+        const cx = lay.startX + (c + 0.5) * lay.cellSize;
+        const cy = lay.startY + (r + 0.5) * lay.cellSize;
+        drawDotOnCanvas(ctx, cx, cy, lay.dotR, state.dotShape);
+      }
+    }
+  }
+
+  // Fit to viewport. Sidebar is hidden in embed mode, so drop the 310px sidebar
+  // offset and the 700px cap — let the canvas fill the iframe square.
+  const isEmbed = document.documentElement.hasAttribute('data-embedded');
+  const wPad = isEmbed ? 0 : 310;
+  const hPad = isEmbed ? 0 : 40;
+  const cap = isEmbed ? Infinity : 700;
+  const maxD = Math.min(window.innerWidth - wPad, window.innerHeight - hPad, cap);
+  canvas.style.width = maxD + 'px'; canvas.style.height = maxD + 'px';
+}
+
+// ─── Render to arbitrary canvas (for export) ───
+function renderToCanvas(targetCtx, w, h, opts) {
+  const savedSize = state.size;
+  state.size = w;
+
+  const { grid, cols, rows } = sampleLetter();
+  const lay = computeLayout(w);
+
+  if (!opts.transparent) {
+    targetCtx.fillStyle = state.bgColor;
+    targetCtx.fillRect(0, 0, w, h);
+  }
+
+  // Backdrop
+  if (state.backdropShape !== 'none') {
+    targetCtx.fillStyle = state.backdropColor;
+    if (state.backdropShape === 'circle') {
+      targetCtx.beginPath();
+      targetCtx.arc(w / 2, h / 2, Math.min(lay.bw, lay.bh) / 2, 0, Math.PI * 2);
+      targetCtx.fill();
+    } else {
+      roundRect(targetCtx, lay.bx, lay.by, lay.bw, lay.bh, lay.br);
+      targetCtx.fill();
+    }
+  }
+
+  // Dots
+  targetCtx.fillStyle = state.dotColor;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c]) {
+        const cx = lay.startX + (c + 0.5) * lay.cellSize;
+        const cy = lay.startY + (r + 0.5) * lay.cellSize;
+        drawDotOnCanvas(targetCtx, cx, cy, lay.dotR, state.dotShape);
+      }
+    }
+  }
+
+  state.size = savedSize;
+}
+
+// ─── SVG helpers ───
+function dotSVG(cx, cy, size, shape, color) {
+  const r = size / 2;
+  const f = n => n.toFixed(2);
+  switch (shape) {
+    case 'circle':
+      return `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}" fill="${color}"/>`;
+    case 'square':
+      return `<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${f(size)}" height="${f(size)}" fill="${color}"/>`;
+    case 'rounded-square': {
+      const cr = r * 0.3;
+      return `<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${f(size)}" height="${f(size)}" rx="${f(cr)}" ry="${f(cr)}" fill="${color}"/>`;
+    }
+    case 'diamond': {
+      return `<polygon points="${f(cx)},${f(cy-r)} ${f(cx+r)},${f(cy)} ${f(cx)},${f(cy+r)} ${f(cx-r)},${f(cy)}" fill="${color}"/>`;
+    }
+    case 'hexagon': {
+      const pts = Array.from({length: 6}, (_, i) => {
+        const a = Math.PI / 3 * i - Math.PI / 6;
+        return `${f(cx + r * Math.cos(a))},${f(cy + r * Math.sin(a))}`;
+      }).join(' ');
+      return `<polygon points="${pts}" fill="${color}"/>`;
+    }
+    case 'triangle': {
+      const pts = [
+        `${f(cx)},${f(cy - r)}`,
+        `${f(cx + r * Math.cos(Math.PI/6))},${f(cy + r * Math.sin(Math.PI/6))}`,
+        `${f(cx - r * Math.cos(Math.PI/6))},${f(cy + r * Math.sin(Math.PI/6))}`
+      ].join(' ');
+      return `<polygon points="${pts}" fill="${color}"/>`;
+    }
+  }
+}
+
+function generateSVG() {
+  const s = state.size;
+  const { grid, cols, rows } = sampleLetter();
+  const lay = computeLayout(s);
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">\n`;
+  svg += `<rect width="${s}" height="${s}" fill="${state.bgColor}"/>\n`;
+
+  if (state.backdropShape !== 'none') {
+    if (state.backdropShape === 'circle') {
+      svg += `<circle cx="${s/2}" cy="${s/2}" r="${Math.min(lay.bw, lay.bh)/2}" fill="${state.backdropColor}"/>\n`;
+    } else {
+      svg += `<rect x="${lay.bx}" y="${lay.by}" width="${lay.bw}" height="${lay.bh}" rx="${lay.br.toFixed(1)}" ry="${lay.br.toFixed(1)}" fill="${state.backdropColor}"/>\n`;
+    }
+  }
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c]) {
+        const cx = lay.startX + (c + 0.5) * lay.cellSize;
+        const cy = lay.startY + (r + 0.5) * lay.cellSize;
+        svg += dotSVG(cx, cy, lay.dotR, state.dotShape, state.dotColor) + '\n';
+      }
+    }
+  }
+  return svg + '</svg>';
+}
+
+// ─── UI wiring ───
+const charInput = document.getElementById('charInput');
+const gridEl = document.getElementById('letterGrid');
+
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('').forEach(ch => {
+  const btn = document.createElement('button');
+  btn.className = 'picker-btn' + (ch === state.letter ? ' active' : '');
+  btn.textContent = ch;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.picker-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.letter = ch; charInput.value = ch; draw();
+  });
+  gridEl.appendChild(btn);
+});
+
+charInput.addEventListener('input', () => {
+  let v = charInput.value.slice(-1);
+  charInput.value = v;
+  if (v) {
+    state.letter = v;
+    document.querySelectorAll('.picker-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent === v.toUpperCase());
+    });
+    draw();
+  }
+});
+charInput.addEventListener('focus', () => charInput.select());
+
+function wireSlider(id, prop, transform, suffix) {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id + 'Val');
+  el.addEventListener('input', () => {
+    state[prop] = transform(parseFloat(el.value));
+    if (val) val.textContent = el.value + (suffix || '');
+    draw();
+  });
+}
+
+wireSlider('gridCols', 'gridCols', v => v, '');
+wireSlider('dotSize', 'dotSize', v => v / 100, '%');
+wireSlider('threshold', 'threshold', v => v / 100, '%');
+wireSlider('backdropRadius', 'backdropRadius', v => v / 100, '%');
+wireSlider('margin', 'margin', v => v / 100, '%');
+wireSlider('padding', 'padding', v => v / 100, '%');
+wireSlider('letterScale', 'letterScale', v => v / 100, '%');
+wireSlider('offsetX', 'offsetX', v => v / 100, '%');
+wireSlider('offsetY', 'offsetY', v => v / 100, '%');
+
+['bgColor', 'backdropColor', 'dotColor'].forEach(id => {
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(id + 'Val');
+  el.addEventListener('input', e => {
+    state[id] = e.target.value;
+    valEl.textContent = e.target.value;
+    draw();
+  });
+});
+
+['fontFamily', 'fontWeight', 'dotShape', 'backdropShape'].forEach(id => {
+  document.getElementById(id).addEventListener('change', e => {
+    state[id] = e.target.value; draw();
+  });
+});
+
+document.getElementById('invert').addEventListener('change', e => {
+  state.invert = e.target.checked; draw();
+});
+
+// ─── Permalink ───
+const {
+  INT_RANGE, COLOR, ENUM, BOOL, TEXT,
+  WEIGHTED_INT_RANGE, ENUM_WEIGHTED,
+} = window.LogoSchema;
+/* Rendering: dots tile cells; coverage > th means dot is "on" (drawn).
+   Variants have invariants:
+     ds=100 (full dot — never partial) ALWAYS
+     th ≤ 9                              ALWAYS (high th = letter vanishes)
+     ls ≥ 105                            ALWAYS (letter dominates field)
+     mg 4-7, pa 0 or default, oy 5-12   (centered, slight downward)
+   gc varies 7-22 (sparse to dense). 4 dot shapes, 3 border options.
+   Color coupling: bg→smart bg, dc→smart fg (post), bd→smart fg or accent.
+
+   Mode lottery in dc.post: 5 archetypes from rendering capabilities. */
+const schema = {
+  ch: TEXT({ charset: /^[A-Za-z0-9]$/, maxLen: 1, def: 'L' }),
+  ff: ENUM_WEIGHTED([
+    ['Archivo Black', 5], ['Impact', 3], ['Georgia', 3],
+    ['Playfair Display', 2], ['Inter', 1], ['Arial', 1],
+    ['Space Mono', 0.4], ['Courier New', 0.3],
+  ], 'Archivo Black'),
+  fw: ENUM_WEIGHTED([['900', 5], ['700', 2], ['400', 0.5]], '900'),
+  /* gc — must stay ≥10 so individual dots remain distinguishable.
+     At gc<10, large dots merge into a solid blob (especially for round
+     letters like O/Q) and the dot-grid aesthetic disappears entirely. */
+  gc: {
+    ...INT_RANGE(5, 32, 12),
+    randomize(rng) {
+      const r = rng();
+      if (r < 0.45) return 11 + Math.floor(rng() * 5);   // [11, 15] medium
+      return 16 + Math.floor(rng() * 8);                 // [16, 23] dense
+    },
+  },
+  /* ds forced to 100 — variants are 100 in every case. Partial dots fight
+     the "letter as dot mosaic" aesthetic. */
+  ds: { ...INT_RANGE(40, 100, 92), randomize: () => 100 },
+  /* th low — variants 5 or 9. Higher means letter doesn't have enough
+     coverage to register as "on". */
+  th: WEIGHTED_INT_RANGE(5, 95, 30, { rmin: 5, rmax: 12 }),
+  /* sh weighted — variants used circle (default), hexagon, diamond.
+     Square/rounded-square also OK. Triangle rare. */
+  sh: ENUM_WEIGHTED([
+    ['circle', 5], ['hexagon', 3], ['diamond', 2.5],
+    ['square', 2], ['rounded-square', 2], ['triangle', 1],
+  ], 'circle'),
+  bs: ENUM_WEIGHTED([['none', 5], ['square', 2], ['circle', 2]], 'square'),
+  br: WEIGHTED_INT_RANGE(0, 50, 0, { rmin: 0, rmax: 8 }),
+  bg: COLOR('#cc0000'),
+  bd: COLOR('#ffffff'),
+  dc: COLOR('#cc0000'),
+  mg: WEIGHTED_INT_RANGE(0, 15, 3, { rmin: 3, rmax: 7 }),
+  /* pa weighted toward 0 (variants explicit 0, or default). */
+  pa: {
+    ...INT_RANGE(0, 25, 10),
+    randomize(rng) {
+      if (rng() < 0.5) return 0;
+      return 5 + Math.floor(rng() * 8); // [5, 12]
+    },
+  },
+  ls: WEIGHTED_INT_RANGE(50, 150, 90, { rmin: 105, rmax: 135 }),
+  ox: WEIGHTED_INT_RANGE(-30, 30, 0, { rmin: -2, rmax: 2 }),
+  /* oy tighter — too-positive values push the negative-space pattern
+     below the visual center. Variants used 5-12; keeping a smaller
+     range avoids the bottom-heavy outputs. */
+  oy: WEIGHTED_INT_RANGE(-30, 30, 0, { rmin: -2, rmax: 6 }),
+  /* `in` (invert) is set explicitly per mode in dc.post (50% random
+     flips break the visual archetypes). */
+  in: { ...BOOL(false), randomize: () => false },
+};
+
+/* Post-pass: couple dc and bd to the smart-pair, then 5-mode lottery
+   (or 25% template snap to homepage variants). dc.post runs late so
+   bg's smart-pair is available via opts. bd.post runs after dc. */
+schema.dc = {
+  ...schema.dc,
+  post(state, rng, opts) {
+    /* Mode selection with occasional curated compositions. */
+    if (rng() < 0.25) {
+      const TEMPLATES = [
+        /* Variant-2-style with gc bumped to 11 so dots stay distinguishable. */
+        { gc: 11, ds: 100, th: 9, sh: 'circle',  bs: 'none', mg: 5, pa: 0,  ls: 132, ox: -3, oy: 8,  ff: 'Archivo Black' },
+        /* Medium hexagon (variant 3 style) */
+        { gc: 13, ds: 100, th: 5, sh: 'hexagon', bs: 'none', mg: 4, pa: 10, ls: 110, ox: 0,  oy: 5,  ff: 'Archivo Black' },
+        /* Dense diamond (variant 4 style) */
+        { gc: 20, ds: 100, th: 9, sh: 'diamond', bs: 'none', mg: 5, pa: 0,  ls: 132, ox: 0,  oy: 7,  ff: 'Georgia' },
+        /* Very dense circle (variant 1 style — bs='circle' backdrop dropped
+           because it requires a 3-color scheme we can't yet auto-couple). */
+        { gc: 22, ds: 100, th: 5, sh: 'circle',  bs: 'none',   mg: 7, pa: 5, ls: 105, ox: 0, oy: 5, ff: 'Georgia' },
+      ];
+      Object.assign(state, TEMPLATES[Math.floor(rng() * TEMPLATES.length)]);
+    } else {
+      /* Mode lottery — 5 distinct dot-grid archetypes.
+         in (invert) is set explicitly per mode so we never get random
+         flips that break the visual archetype. */
+      const m = rng();
+      if (m < 0.40) {
+        /* Mode A: classic dot-letter — letter formed of dots (40%) */
+        state.in = false;
+      } else if (m < 0.65) {
+        /* Mode B: dense (high gc) — letter from many small dots */
+        state.gc = 18 + Math.floor(rng() * 7);
+        state.in = false;
+      } else {
+        /* Mode D: NEGATIVE SPACE (dense diamond/hex pattern with letter
+           as a hole) — 35% to amplify the look the user liked. */
+        state.in = true;
+        state.gc = 11 + Math.floor(rng() * 9); // [11, 19]
+        const negShapes = ['diamond', 'hexagon', 'square', 'circle'];
+        state.sh = negShapes[Math.floor(rng() * negShapes.length)];
+        state.bs = 'none';
+        state.mg = 3 + Math.floor(rng() * 4); // [3, 6] tight margin
+        state.pa = 0;
+        state.ds = 100;
+      }
+      /* Force bs='none' for all non-template modes — backdrop creates
+         3-color compositions that need careful coupling we don't have. */
+      state.bs = 'none';
+    }
+    /* Couple dc to smart-pair fg (was random hex) so dot color always
+       contrasts with bg. */
+    if (opts && opts.palette === 'mono' && opts.monoFg) return opts.monoFg;
+    if (opts && opts._fullPair) return opts._fullPair[1];
+    return state.dc;
+  },
+};
+schema.bd = {
+  ...schema.bd,
+  post(state, rng, opts) {
+    /* bd defaults to matching dc (cleanest brand look). When border isn't
+       visible (bs=none), this doesn't matter. */
+    if (opts && opts.palette === 'mono' && opts.monoFg) return opts.monoFg;
+    if (opts && opts._fullPair) return opts._fullPair[1];
+    return state.bd;
+  },
+};
+
+function getState() {
+  return {
+    ch: state.letter,
+    ff: state.fontFamily,
+    fw: state.fontWeight,
+    gc: state.gridCols,
+    ds: Math.round(state.dotSize * 100),
+    th: Math.round(state.threshold * 100),
+    sh: state.dotShape,
+    bs: state.backdropShape,
+    br: Math.round(state.backdropRadius * 100),
+    bg: state.bgColor,
+    bd: state.backdropColor,
+    dc: state.dotColor,
+    mg: Math.round(state.margin * 100),
+    pa: Math.round(state.padding * 100),
+    ls: Math.round(state.letterScale * 100),
+    ox: Math.round(state.offsetX * 100),
+    oy: Math.round(state.offsetY * 100),
+    in: state.invert,
+  };
+}
+
+function applyState(s) {
+  state.letter = s.ch;
+  state.fontFamily = s.ff;
+  state.fontWeight = s.fw;
+  state.gridCols = s.gc;
+  state.dotSize = s.ds / 100;
+  state.threshold = s.th / 100;
+  state.dotShape = s.sh;
+  state.backdropShape = s.bs;
+  state.backdropRadius = s.br / 100;
+  state.bgColor = s.bg;
+  state.backdropColor = s.bd;
+  state.dotColor = s.dc;
+  state.margin = s.mg / 100;
+  state.padding = s.pa / 100;
+  state.letterScale = s.ls / 100;
+  state.offsetX = s.ox / 100;
+  state.offsetY = s.oy / 100;
+  state.invert = s.in;
+
+  charInput.value = state.letter;
+  document.querySelectorAll('.picker-btn').forEach(b => b.classList.toggle('active', b.textContent === state.letter.toUpperCase()));
+  document.getElementById('fontFamily').value = state.fontFamily;
+  document.getElementById('fontWeight').value = state.fontWeight;
+  document.getElementById('dotShape').value = state.dotShape;
+  document.getElementById('backdropShape').value = state.backdropShape;
+  document.getElementById('bgColor').value = state.bgColor;
+  document.getElementById('bgColorVal').textContent = state.bgColor;
+  document.getElementById('backdropColor').value = state.backdropColor;
+  document.getElementById('backdropColorVal').textContent = state.backdropColor;
+  document.getElementById('dotColor').value = state.dotColor;
+  document.getElementById('dotColorVal').textContent = state.dotColor;
+  document.getElementById('invert').checked = state.invert;
+
+  const sliderMap = [
+    ['gridCols', state.gridCols, ''],
+    ['dotSize', Math.round(state.dotSize * 100), '%'],
+    ['threshold', Math.round(state.threshold * 100), '%'],
+    ['backdropRadius', Math.round(state.backdropRadius * 100), '%'],
+    ['margin', Math.round(state.margin * 100), '%'],
+    ['padding', Math.round(state.padding * 100), '%'],
+    ['letterScale', Math.round(state.letterScale * 100), '%'],
+    ['offsetX', Math.round(state.offsetX * 100), '%'],
+    ['offsetY', Math.round(state.offsetY * 100), '%'],
+  ];
+  sliderMap.forEach(([id, val, suffix]) => {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(id + 'Val');
+    if (el) el.value = val;
+    if (valEl) valEl.textContent = val + suffix;
+  });
+
+  draw();
+}
+
+const pm = new window.PermalinkManager({
+  toolName: 'dot-grid',
+  schema, getState, applyState,
+});
+
+// Hook every input/change to live-update the URL
+['charInput', 'fontFamily', 'fontWeight', 'gridCols', 'dotSize', 'threshold',
+ 'dotShape', 'backdropShape', 'backdropRadius', 'bgColor', 'backdropColor',
+ 'dotColor', 'margin', 'padding', 'letterScale', 'offsetX', 'offsetY', 'invert'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const evt = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+  el.addEventListener(evt, () => pm.update());
+});
+document.querySelectorAll('.picker-btn').forEach(btn => btn.addEventListener('click', () => pm.update()));
+
+// ─── Export via shared ToolExporter ───
+new ToolExporter({
+  toolName: 'dotgrid',
+  getCanvas: () => canvas,
+  getSVG: () => generateSVG(),
+  renderToCanvas: renderToCanvas,
+  getBackgroundColor: () => state.bgColor,
+  baseWidth: 800,
+  baseHeight: 800,
+  getPermalink: () => pm.getPermalink(),
+  flushPermalink: () => pm.flush(),
+});
+
+window.addEventListener('resize', draw);
+
+// Force-load Google Fonts before first draw. document.fonts.ready alone resolves
+// before lazy @font-face fonts actually download, which causes the canvas to
+// silently fall back to a serif when the iframe-embedded preview renders fast.
+const PRELOAD_FONTS = ['Archivo Black', 'Inter', 'Playfair Display', 'Space Mono'];
+const PRELOAD_WEIGHTS = ['400', '700', '900'];
+window.FontDetect.loadFonts(PRELOAD_FONTS, PRELOAD_WEIGHTS)
+  .then(() => { draw(); pm.decode(); pm.setupPresets(); });
+</script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

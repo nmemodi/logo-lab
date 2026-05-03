@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Line Warp — Logo Lab</title>
+<meta name="description" content="Horizontal lines displaced by a letter heightmap. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+<meta property="og:title" content="Line Warp — Logo Lab">
+<meta property="og:description" content="Horizontal lines displaced by a letter heightmap.">
+<meta property="og:image" content="https://natemodi.com/logo/line-warp/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Line Warp logo variations from Logo Lab.">
+<meta property="og:url" content="https://natemodi.com/logo/line-warp/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Line Warp — Logo Lab">
+<meta name="twitter:description" content="Horizontal lines displaced by a letter heightmap.">
+<meta name="twitter:image" content="https://natemodi.com/logo/line-warp/og-image.png">
+<meta name="twitter:image:alt" content="Four Line Warp logo variations from Logo Lab.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/shared/tools-shared.css">
+<style>
+  /* Tool-specific overrides only */
+  canvas { box-shadow: var(--shadow-canvas); }
+</style>
+</head>
+<body>
+
+<div class="tool-sidebar">
+  <div class="tool-header">
+    <h1 class="tool-header__title">Line Warp</h1>
+  </div>
+
+  <p class="tool-hint">Create logos from displaced lines</p>
+
+  <div class="control-group">
+    <div class="section-label">Typography</div>
+    <label>Letter</label>
+    <input type="text" id="letter" value="S" maxlength="2">
+  </div>
+
+  <div class="row">
+    <div class="control-group">
+      <label>Font</label>
+      <select id="font"></select>
+    </div>
+    <div class="control-group">
+      <label>Weight</label>
+      <select id="fontWeight">
+        <option value="900" selected>900 (Black)</option>
+        <option value="800">800 (Extra Bold)</option>
+        <option value="700">700 (Bold)</option>
+        <option value="600">600 (Semi Bold)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label>Letter Size <span class="val" id="letterSizeVal"></span></label>
+    <input type="range" id="letterSize" min="0.3" max="1.0" value="0.72" step="0.01">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Lines</div>
+    <label>Count <span class="val" id="linesVal"></span></label>
+    <input type="range" id="lines" min="5" max="25" value="13" step="1">
+    <label>Displacement <span class="val" id="dispVal"></span></label>
+    <input type="range" id="displacement" min="0" max="150" value="65" step="1">
+    <label>Blur (Smoothing) <span class="val" id="blurVal"></span></label>
+    <input type="range" id="blur" min="5" max="60" value="28" step="1">
+    <label>Ridge <span class="val" id="ridgeVal"></span></label>
+    <input type="range" id="ridge" min="0" max="100" value="0" step="1">
+    <label>Gap Ratio <span class="val" id="gapVal"></span></label>
+    <input type="range" id="gap" min="0.1" max="0.7" value="0.35" step="0.01">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Transform</div>
+    <label>Rotation <span class="val" id="rotationVal"></span></label>
+    <input type="range" id="rotation" min="0" max="359" value="0" step="1">
+  </div>
+
+  <div class="row">
+    <div class="control-group">
+      <label>Offset X <span class="val" id="offsetXVal"></span></label>
+      <input type="range" id="offsetX" min="-200" max="200" value="0" step="1">
+    </div>
+    <div class="control-group">
+      <label>Offset Y <span class="val" id="offsetYVal"></span></label>
+      <input type="range" id="offsetY" min="-200" max="200" value="0" step="1">
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Frame</div>
+    <label>Margin <span class="val" id="marginVal"></span></label>
+    <input type="range" id="margin" min="0" max="80" value="25" step="1">
+    <label>Corner Radius <span class="val" id="radiusVal"></span></label>
+    <input type="range" id="radius" min="0" max="40" value="10" step="1">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Color</div>
+    <label>Background</label>
+    <div class="color-row">
+      <input type="color" id="bgColor" value="#ffffff">
+      <span class="color-hex" id="bgColorVal">#ffffff</span>
+    </div>
+    <label>Lines</label>
+    <div class="color-row">
+      <input type="color" id="fgColor" value="#000000">
+      <span class="color-hex" id="fgColorVal">#000000</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Options</div>
+    <label class="toggle-row">
+      <input type="checkbox" id="showMap">
+      <span>Show displacement map</span>
+    </label>
+    <label class="toggle-row">
+      <input type="checkbox" id="invert">
+      <span>Swap colors</span>
+    </label>
+  </div>
+
+  <div class="control-group">
+    <label>Presets</label>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resetDefaults()">Reset</button>
+    <button class="btn btn-primary btn-export">Export</button>
+  </div>
+</div>
+
+<div class="tool-canvas tool-canvas--centered">
+  <canvas id="canvas"></canvas>
+</div>
+
+<script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+<script src="/shared/rng.js"></script>
+<script src="/shared/permalink.js"></script>
+<script src="/shared/tools-export.js"></script>
+<script src="/shared/font-detect.js"></script>
+<script src="/shared/tools-registry.js"></script>
+<script>
+const FONT_CANDIDATES = ['Helvetica Neue', 'Arial Black', 'Georgia', 'Impact', 'Futura', 'Times New Roman'];
+const SIZE = 800;
+const canvas = document.getElementById('canvas');
+canvas.width = SIZE;
+canvas.height = SIZE;
+const ctx = canvas.getContext('2d');
+
+// Controls
+const controls = {
+  letter: document.getElementById('letter'),
+  font: document.getElementById('font'),
+  fontWeight: document.getElementById('fontWeight'),
+  rotation: document.getElementById('rotation'),
+  offsetX: document.getElementById('offsetX'),
+  offsetY: document.getElementById('offsetY'),
+  lines: document.getElementById('lines'),
+  displacement: document.getElementById('displacement'),
+  blur: document.getElementById('blur'),
+  ridge: document.getElementById('ridge'),
+  gap: document.getElementById('gap'),
+  letterSize: document.getElementById('letterSize'),
+  margin: document.getElementById('margin'),
+  radius: document.getElementById('radius'),
+  showMap: document.getElementById('showMap'),
+  invert: document.getElementById('invert'),
+  bgColor: document.getElementById('bgColor'),
+  fgColor: document.getElementById('fgColor'),
+};
+
+const defaults = {
+  letter: 'S', font: 'Helvetica Neue', fontWeight: '900', rotation: 0, offsetX: 0, offsetY: 0,
+  lines: 13, displacement: 65, blur: 28, ridge: 0, gap: 0.35,
+  letterSize: 0.72, margin: 25, radius: 10,
+  showMap: false, invert: false,
+  bgColor: '#ffffff', fgColor: '#000000',
+};
+
+function getParams() {
+  return {
+    letter: controls.letter.value || 'S',
+    font: controls.font.value,
+    fontWeight: controls.fontWeight.value,
+    rotation: +controls.rotation.value,
+    offsetX: +controls.offsetX.value,
+    offsetY: +controls.offsetY.value,
+    numLines: +controls.lines.value,
+    maxDisp: +controls.displacement.value,
+    blur: +controls.blur.value,
+    ridge: +controls.ridge.value / 100,
+    gapRatio: +controls.gap.value,
+    letterSize: +controls.letterSize.value,
+    margin: +controls.margin.value,
+    radius: +controls.radius.value,
+    showMap: controls.showMap.checked,
+    invert: controls.invert.checked,
+    bgColor: controls.bgColor.value,
+    fgColor: controls.fgColor.value,
+  };
+}
+
+function updateLabels() {
+  document.getElementById('linesVal').textContent = controls.lines.value;
+  document.getElementById('dispVal').textContent = controls.displacement.value + 'px';
+  document.getElementById('blurVal').textContent = controls.blur.value + 'px';
+  document.getElementById('ridgeVal').textContent = controls.ridge.value + '%';
+  document.getElementById('gapVal').textContent = (+controls.gap.value * 100).toFixed(0) + '%';
+  document.getElementById('letterSizeVal').textContent = (+controls.letterSize.value * 100).toFixed(0) + '%';
+  document.getElementById('rotationVal').textContent = controls.rotation.value + '\u00B0';
+  document.getElementById('offsetXVal').textContent = controls.offsetX.value + 'px';
+  document.getElementById('offsetYVal').textContent = controls.offsetY.value + 'px';
+  document.getElementById('marginVal').textContent = controls.margin.value + 'px';
+  document.getElementById('radiusVal').textContent = controls.radius.value + 'px';
+  document.getElementById('bgColorVal').textContent = controls.bgColor.value;
+  document.getElementById('fgColorVal').textContent = controls.fgColor.value;
+}
+
+function resetDefaults() {
+  controls.letter.value = defaults.letter;
+  controls.font.value = defaults.font;
+  controls.fontWeight.value = defaults.fontWeight;
+  controls.rotation.value = defaults.rotation;
+  controls.offsetX.value = defaults.offsetX;
+  controls.offsetY.value = defaults.offsetY;
+  controls.lines.value = defaults.lines;
+  controls.displacement.value = defaults.displacement;
+  controls.blur.value = defaults.blur;
+  controls.ridge.value = defaults.ridge;
+  controls.gap.value = defaults.gap;
+  controls.letterSize.value = defaults.letterSize;
+  controls.margin.value = defaults.margin;
+  controls.radius.value = defaults.radius;
+  controls.showMap.checked = defaults.showMap;
+  controls.invert.checked = defaults.invert;
+  controls.bgColor.value = defaults.bgColor;
+  controls.fgColor.value = defaults.fgColor;
+  updateLabels();
+  render();
+}
+
+// --- Displacement map ---
+function createDisplacementMap(p) {
+  const c = document.createElement('canvas');
+  c.width = SIZE; c.height = SIZE;
+  const g = c.getContext('2d');
+
+  g.fillStyle = '#fff';
+  g.fillRect(0, 0, SIZE, SIZE);
+
+  g.fillStyle = '#000';
+  const fontSize = SIZE * p.letterSize;
+  g.font = `${p.fontWeight} ${fontSize}px "${p.font}", sans-serif`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.save();
+  g.translate(SIZE / 2, SIZE / 2);
+  g.rotate(p.rotation * Math.PI / 180);
+  g.fillText(p.letter, p.offsetX, p.offsetY);
+  g.restore();
+
+  // Blur pass (smooth dome shape)
+  const blurred = document.createElement('canvas');
+  blurred.width = SIZE; blurred.height = SIZE;
+  const bg = blurred.getContext('2d');
+  bg.filter = `blur(${p.blur}px)`;
+  bg.drawImage(c, 0, 0);
+  const smoothData = bg.getImageData(0, 0, SIZE, SIZE).data;
+
+  if (p.ridge <= 0) return smoothData;
+
+  // Distance field (pointed ridge shape)
+  const letterPixels = g.getImageData(0, 0, SIZE, SIZE).data;
+  const mask = new Uint8Array(SIZE * SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    mask[i] = letterPixels[i * 4] < 128 ? 1 : 0;
+  }
+  const dist = distanceTransform(mask, SIZE, SIZE);
+
+  // Normalize
+  let maxDist = 0;
+  for (let i = 0; i < dist.length; i++) {
+    if (dist[i] > maxDist) maxDist = dist[i];
+  }
+
+  // Render distance field to canvas for blurring
+  const distCanvas = document.createElement('canvas');
+  distCanvas.width = SIZE; distCanvas.height = SIZE;
+  const dc = distCanvas.getContext('2d');
+  const distImg = dc.createImageData(SIZE, SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const v = maxDist > 0 ? Math.round((1 - dist[i] / maxDist) * 255) : 255;
+    distImg.data[i * 4] = v;
+    distImg.data[i * 4 + 1] = v;
+    distImg.data[i * 4 + 2] = v;
+    distImg.data[i * 4 + 3] = 255;
+  }
+  dc.putImageData(distImg, 0, 0);
+
+  // Light blur on distance field to smooth pixelation
+  const distBlurred = document.createElement('canvas');
+  distBlurred.width = SIZE; distBlurred.height = SIZE;
+  const dbCtx = distBlurred.getContext('2d');
+  dbCtx.filter = `blur(${Math.max(3, p.blur * 0.15)}px)`;
+  dbCtx.drawImage(distCanvas, 0, 0);
+  const ridgeData = dbCtx.getImageData(0, 0, SIZE, SIZE).data;
+
+  // Blend smooth and ridge
+  const t = p.ridge;
+  for (let i = 0; i < smoothData.length; i += 4) {
+    const blended = smoothData[i] * (1 - t) + ridgeData[i] * t;
+    smoothData[i] = Math.round(blended);
+    smoothData[i + 1] = Math.round(blended);
+    smoothData[i + 2] = Math.round(blended);
+  }
+
+  return smoothData;
+}
+
+// Approximate Euclidean distance transform (chamfer 3-4)
+function distanceTransform(mask, w, h) {
+  const dist = new Float32Array(w * h);
+  const INF = w + h;
+
+  for (let i = 0; i < w * h; i++) {
+    dist[i] = mask[i] ? INF : 0;
+  }
+
+  // Forward pass
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (dist[i] === 0) continue;
+      if (x > 0) dist[i] = Math.min(dist[i], dist[i - 1] + 1);
+      if (y > 0) dist[i] = Math.min(dist[i], dist[(y - 1) * w + x] + 1);
+      if (x > 0 && y > 0) dist[i] = Math.min(dist[i], dist[(y - 1) * w + x - 1] + 1.414);
+      if (x < w - 1 && y > 0) dist[i] = Math.min(dist[i], dist[(y - 1) * w + x + 1] + 1.414);
+    }
+  }
+
+  // Backward pass
+  for (let y = h - 1; y >= 0; y--) {
+    for (let x = w - 1; x >= 0; x--) {
+      const i = y * w + x;
+      if (dist[i] === 0) continue;
+      if (x < w - 1) dist[i] = Math.min(dist[i], dist[i + 1] + 1);
+      if (y < h - 1) dist[i] = Math.min(dist[i], dist[(y + 1) * w + x] + 1);
+      if (x < w - 1 && y < h - 1) dist[i] = Math.min(dist[i], dist[(y + 1) * w + x + 1] + 1.414);
+      if (x > 0 && y < h - 1) dist[i] = Math.min(dist[i], dist[(y + 1) * w + x - 1] + 1.414);
+    }
+  }
+
+  return dist;
+}
+
+// Sample the 2D heightmap. Each line samples at its centerline (baseY)
+// rather than separate top/bottom edges, so the line shifts as a rigid
+// band instead of distorting in thickness — keeping the letter shape
+// visible in the stripe pattern while bonding each band's edges together.
+function getHeight(data, x, y) {
+  const ix = Math.max(0, Math.min(SIZE - 1, Math.round(x)));
+  const iy = Math.max(0, Math.min(SIZE - 1, Math.round(y)));
+  return (255 - data[(iy * SIZE + ix) * 4]) / 255;
+}
+
+// --- Rounded rect helper ---
+function roundedRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// --- Main render ---
+function render() {
+  const p = getParams();
+  const dispData = createDisplacementMap(p);
+
+  const bg = p.invert ? p.fgColor : p.bgColor;
+  const fg = p.invert ? p.bgColor : p.fgColor;
+
+  // Clear
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  if (p.showMap) {
+    const imgData = ctx.createImageData(SIZE, SIZE);
+    for (let i = 0; i < dispData.length; i += 4) {
+      const v = 255 - dispData[i]; // height as brightness
+      imgData.data[i] = v;
+      imgData.data[i + 1] = v;
+      imgData.data[i + 2] = v;
+      imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+    return;
+  }
+
+  // Draw displaced lines with per-line rounded corners
+  const totalH = SIZE - 2 * p.margin;
+  const spacing = totalH / p.numLines;
+  const gapSize = spacing * p.gapRatio;
+  const bandH = spacing - gapSize;
+  const xStart = p.margin;
+  const xEnd = SIZE - p.margin;
+  const step = 1;
+  const r = Math.min(p.radius, bandH / 2, (xEnd - xStart) / 4);
+
+  ctx.fillStyle = fg;
+
+  for (let i = 0; i < p.numLines; i++) {
+    const baseY = p.margin + i * spacing + spacing / 2;
+    const topY = baseY - bandH / 2;
+    const botY = baseY + bandH / 2;
+
+    const dL = getHeight(dispData, xStart, baseY) * p.maxDisp;
+    const dR = getHeight(dispData, xEnd, baseY) * p.maxDisp;
+    const dLr = getHeight(dispData, xStart + r, baseY) * p.maxDisp;
+    const dRr = getHeight(dispData, xEnd - r, baseY) * p.maxDisp;
+
+    ctx.beginPath();
+    ctx.moveTo(xStart, topY - dL + r);
+    ctx.quadraticCurveTo(xStart, topY - dL, xStart + r, topY - dLr);
+    for (let x = xStart + r + step; x <= xEnd - r; x += step) {
+      ctx.lineTo(x, topY - getHeight(dispData, x, baseY) * p.maxDisp);
+    }
+    ctx.lineTo(xEnd - r, topY - dRr);
+    ctx.quadraticCurveTo(xEnd, topY - dR, xEnd, topY - dR + r);
+    ctx.lineTo(xEnd, botY - dR - r);
+    ctx.quadraticCurveTo(xEnd, botY - dR, xEnd - r, botY - dRr);
+    for (let x = xEnd - r - step; x >= xStart + r; x -= step) {
+      ctx.lineTo(x, botY - getHeight(dispData, x, baseY) * p.maxDisp);
+    }
+    ctx.lineTo(xStart + r, botY - dLr);
+    ctx.quadraticCurveTo(xStart, botY - dL, xStart, botY - dL - r);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// --- SVG export ---
+function generateSVGPaths(p, dispData) {
+  const paths = [];
+  const totalH = SIZE - 2 * p.margin;
+  const spacing = totalH / p.numLines;
+  const gapSize = spacing * p.gapRatio;
+  const bandH = spacing - gapSize;
+  const xStart = p.margin;
+  const xEnd = SIZE - p.margin;
+  const step = 2;
+  const r = Math.min(p.radius, bandH / 2, (xEnd - xStart) / 4);
+  const f = (v) => v.toFixed(1);
+
+  for (let i = 0; i < p.numLines; i++) {
+    const baseY = p.margin + i * spacing + spacing / 2;
+    const topY = baseY - bandH / 2;
+    const botY = baseY + bandH / 2;
+
+    const dL = getHeight(dispData, xStart, baseY) * p.maxDisp;
+    const dR = getHeight(dispData, xEnd, baseY) * p.maxDisp;
+    const dLr = getHeight(dispData, xStart + r, baseY) * p.maxDisp;
+    const dRr = getHeight(dispData, xEnd - r, baseY) * p.maxDisp;
+
+    let d = `M ${f(xStart)} ${f(topY - dL + r)}`;
+    d += ` Q ${f(xStart)} ${f(topY - dL)} ${f(xStart + r)} ${f(topY - dLr)}`;
+    for (let x = xStart + r + step; x <= xEnd - r; x += step) {
+      d += ` L ${x} ${f(topY - getHeight(dispData, x, baseY) * p.maxDisp)}`;
+    }
+    d += ` L ${f(xEnd - r)} ${f(topY - dRr)}`;
+    d += ` Q ${f(xEnd)} ${f(topY - dR)} ${f(xEnd)} ${f(topY - dR + r)}`;
+    d += ` L ${f(xEnd)} ${f(botY - dR - r)}`;
+    d += ` Q ${f(xEnd)} ${f(botY - dR)} ${f(xEnd - r)} ${f(botY - dRr)}`;
+    for (let x = xEnd - r - step; x >= xStart + r; x -= step) {
+      d += ` L ${x} ${f(botY - getHeight(dispData, x, baseY) * p.maxDisp)}`;
+    }
+    d += ` L ${f(xStart + r)} ${f(botY - dLr)}`;
+    d += ` Q ${f(xStart)} ${f(botY - dL)} ${f(xStart)} ${f(botY - dL - r)}`;
+    d += ' Z';
+    paths.push(d);
+  }
+
+  return paths;
+}
+
+function generateSVG() {
+  const p = getParams();
+  const dispData = createDisplacementMap(p);
+  const paths = generateSVGPaths(p, dispData);
+  const fg = p.invert ? p.bgColor : p.fgColor;
+  const bg = p.invert ? p.fgColor : p.bgColor;
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}" width="${SIZE}" height="${SIZE}">\n`;
+  svg += `  <rect width="${SIZE}" height="${SIZE}" fill="${bg}"/>\n`;
+  paths.forEach(d => {
+    svg += `  <path d="${d}" fill="${fg}"/>\n`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+// --- renderToCanvas for ToolExporter ---
+function renderToCanvas(exportCtx, width, height, opts) {
+  const p = getParams();
+  const dispData = createDisplacementMap(p);
+  const scale = width / SIZE;
+
+  const bg = opts && opts.transparent ? 'transparent' : (p.invert ? p.fgColor : p.bgColor);
+  const fg = p.invert ? p.bgColor : p.fgColor;
+
+  if (bg !== 'transparent') {
+    exportCtx.fillStyle = bg;
+    exportCtx.fillRect(0, 0, width, height);
+  }
+
+  if (p.showMap) {
+    // For displacement map view, just scale the main canvas
+    exportCtx.drawImage(canvas, 0, 0, width, height);
+    return;
+  }
+
+  exportCtx.save();
+  exportCtx.scale(scale, scale);
+
+  const totalH = SIZE - 2 * p.margin;
+  const spacing = totalH / p.numLines;
+  const gapSize = spacing * p.gapRatio;
+  const bandH = spacing - gapSize;
+  const xStart = p.margin;
+  const xEnd = SIZE - p.margin;
+  const step = 1;
+  const r = Math.min(p.radius, bandH / 2, (xEnd - xStart) / 4);
+
+  exportCtx.fillStyle = fg;
+
+  for (let i = 0; i < p.numLines; i++) {
+    const baseY = p.margin + i * spacing + spacing / 2;
+    const topY = baseY - bandH / 2;
+    const botY = baseY + bandH / 2;
+
+    const dL = getHeight(dispData, xStart, baseY) * p.maxDisp;
+    const dR = getHeight(dispData, xEnd, baseY) * p.maxDisp;
+    const dLr = getHeight(dispData, xStart + r, baseY) * p.maxDisp;
+    const dRr = getHeight(dispData, xEnd - r, baseY) * p.maxDisp;
+
+    exportCtx.beginPath();
+    exportCtx.moveTo(xStart, topY - dL + r);
+    exportCtx.quadraticCurveTo(xStart, topY - dL, xStart + r, topY - dLr);
+    for (let x = xStart + r + step; x <= xEnd - r; x += step) {
+      exportCtx.lineTo(x, topY - getHeight(dispData, x, baseY) * p.maxDisp);
+    }
+    exportCtx.lineTo(xEnd - r, topY - dRr);
+    exportCtx.quadraticCurveTo(xEnd, topY - dR, xEnd, topY - dR + r);
+    exportCtx.lineTo(xEnd, botY - dR - r);
+    exportCtx.quadraticCurveTo(xEnd, botY - dR, xEnd - r, botY - dRr);
+    for (let x = xEnd - r - step; x >= xStart + r; x -= step) {
+      exportCtx.lineTo(x, botY - getHeight(dispData, x, baseY) * p.maxDisp);
+    }
+    exportCtx.lineTo(xStart + r, botY - dLr);
+    exportCtx.quadraticCurveTo(xStart, botY - dL, xStart, botY - dL - r);
+    exportCtx.closePath();
+    exportCtx.fill();
+  }
+
+  exportCtx.restore();
+}
+
+// --- Wire up controls ---
+Object.values(controls).forEach(el => {
+  el.addEventListener('input', () => { updateLabels(); render(); });
+  el.addEventListener('change', () => { updateLabels(); render(); });
+});
+
+// --- Permalink ---
+const {
+  INT_RANGE, FLOAT_RANGE, ENUM, BOOL, TEXT, COLOR,
+  WEIGHTED_INT_RANGE, WEIGHTED_FLOAT_RANGE, BIMODAL, ENUM_WEIGHTED,
+} = window.LogoSchema;
+
+/* Random-shuffle constraints — derived from the hand-curated homepage
+   variants. Sliders still expose the full range; only `r=1` shuffles
+   are tightened. Failure modes we trim:
+     - washed-out / invisible letters → cap low end of `ls`, `g`, `d`
+     - blob mess from mid-ridge        → BIMODAL on `rd` (snap 0 or 100)
+     - body-type fonts read weak       → ENUM_WEIGHTED toward display fonts */
+const schema = {
+  lt: TEXT({ charset: /^[A-Za-z0-9]{1,2}$/, maxLen: 2, def: 'S' }),
+  f:  ENUM_WEIGHTED([
+        ['Futura', 4],
+        ['Arial Black', 4],
+        ['Impact', 3],
+        ['Helvetica Neue', 3],
+        ['Georgia', 1],
+        ['Times New Roman', 0.5],
+      ], 'Helvetica Neue'),
+  fw: ENUM(['900', '800', '700', '600'], '900'),
+  r:  INT_RANGE(0, 359, 0),
+  ox: WEIGHTED_INT_RANGE(-200, 200, 0, { rmin: -20, rmax: 20 }),
+  /* oy is derived from d in post-pass so the visible bump centroid lands
+     near canvas center. Geometry:
+       letter_center = 400 + oy
+       bump_peak     = letter_top − d  = 400 + oy − ls·400 − d
+       bump_bottom   = letter_bot      = 400 + oy + ls·400
+       bump_centroid = (peak + bottom) / 2 = 400 + oy − d/2
+     So oy = d/2 + offset, where offset directly equals the centroid's
+     pixel deviation from canvas center. We bias offset slightly positive
+     (letter sits a hair below dead-center, matching homepage variants).
+     Slider bounds remain ±200 — manual control is unaffected. */
+  oy: {
+    ...WEIGHTED_INT_RANGE(-200, 200, 0, { rmin: 40, rmax: 80 }),
+    post(state, rng) {
+      const d = (typeof state.d === 'number') ? state.d : 90;
+      const offset = Math.floor(-5 + rng() * 25); // [−5, +20) → centroid in [395, 420)
+      const v = Math.round(d / 2) + offset;
+      return Math.max(-200, Math.min(200, v));
+    },
+  },
+  n:  WEIGHTED_INT_RANGE(5, 25, 13, { rmin: 6, rmax: 22 }),
+  d:  WEIGHTED_INT_RANGE(0, 150, 65, { rmin: 55, rmax: 130 }),
+  b:  WEIGHTED_INT_RANGE(5, 60, 28, { rmin: 18, rmax: 45 }),
+  rd: BIMODAL(0, 100, 0, { weight: 0.4 }),
+  g:  WEIGHTED_FLOAT_RANGE(0.1, 0.7, 0.35, 2, { rmin: 0.4, rmax: 0.7, pow: 0.6 }),
+  ls: WEIGHTED_FLOAT_RANGE(0.3, 1.0, 0.72, 2, { rmin: 0.75, rmax: 1.0, pow: 0.6 }),
+  m:  WEIGHTED_INT_RANGE(0, 80, 25, { rmin: 10, rmax: 50 }),
+  cr: INT_RANGE(0, 40, 10),
+  /* sm is a debug overlay (renders the heightmap instead of the letter).
+     Never randomize it — only manual toggle. */
+  sm: { ...BOOL(false), randomize: () => false },
+  iv: BOOL(false),
+  bg: COLOR('#ffffff'),
+  fg: COLOR('#000000'),
+};
+
+function getPermalinkState() {
+  return {
+    lt: controls.letter.value || 'S',
+    f: controls.font.value,
+    fw: controls.fontWeight.value,
+    r: +controls.rotation.value,
+    ox: +controls.offsetX.value,
+    oy: +controls.offsetY.value,
+    n: +controls.lines.value,
+    d: +controls.displacement.value,
+    b: +controls.blur.value,
+    rd: +controls.ridge.value,
+    g: +controls.gap.value,
+    ls: +controls.letterSize.value,
+    m: +controls.margin.value,
+    cr: +controls.radius.value,
+    sm: controls.showMap.checked,
+    iv: controls.invert.checked,
+    bg: controls.bgColor.value,
+    fg: controls.fgColor.value,
+  };
+}
+function applyPermalinkState(s) {
+  controls.letter.value = s.lt;
+  controls.font.value = s.f;
+  controls.fontWeight.value = s.fw;
+  controls.rotation.value = s.r;
+  controls.offsetX.value = s.ox;
+  controls.offsetY.value = s.oy;
+  controls.lines.value = s.n;
+  controls.displacement.value = s.d;
+  controls.blur.value = s.b;
+  controls.ridge.value = s.rd;
+  controls.gap.value = s.g;
+  controls.letterSize.value = s.ls;
+  controls.margin.value = s.m;
+  controls.radius.value = s.cr;
+  controls.showMap.checked = s.sm;
+  controls.invert.checked = s.iv;
+  controls.bgColor.value = s.bg;
+  controls.fgColor.value = s.fg;
+  updateLabels();
+  render();
+}
+
+const pm = new window.PermalinkManager({
+  toolName: 'line-warp',
+  schema, getState: getPermalinkState, applyState: applyPermalinkState,
+});
+
+Object.values(controls).forEach(el => {
+  const evt = (el.type === 'checkbox') ? 'change' : 'input';
+  el.addEventListener(evt, () => pm.update());
+});
+
+// --- Export via shared ToolExporter ---
+new ToolExporter({
+  toolName: 'line-warp',
+  getCanvas: () => canvas,
+  getSVG: () => generateSVG(),
+  renderToCanvas: renderToCanvas,
+  getBackgroundColor: () => { const p = getParams(); return p.invert ? p.fgColor : p.bgColor; },
+  baseWidth: SIZE,
+  baseHeight: SIZE,
+  getPermalink: () => pm.getPermalink(),
+  flushPermalink: () => pm.flush(),
+});
+
+// Populate font dropdown with only fonts available on the user's system,
+// then run initial render + permalink decode.
+updateLabels();
+window.FontDetect.detectAvailableFonts(FONT_CANDIDATES).then(available => {
+  const fonts = available.length ? available : FONT_CANDIDATES.slice(0, 1);
+  controls.font.innerHTML = fonts
+    .map(f => `<option value="${f}">${f}</option>`)
+    .join('');
+  if (!fonts.includes(defaults.font)) defaults.font = fonts[0];
+  controls.font.value = defaults.font;
+  render();
+  pm.decode();
+  pm.setupPresets();
+  if (!fonts.includes(controls.font.value)) {
+    controls.font.value = fonts[0];
+    render();
+    pm.update();
+  }
+});
+</script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>

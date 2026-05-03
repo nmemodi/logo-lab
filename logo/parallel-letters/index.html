@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Letters — Logo Lab</title>
+<meta name="description" content="Letters drawn with vertical strip cuts through a solid fill. A free browser-based Logo Lab tool for tuning, sharing, and exporting generated marks.">
+<meta property="og:title" content="Parallel Letters — Logo Lab">
+<meta property="og:description" content="Letters drawn with vertical strip cuts through a solid fill.">
+<meta property="og:image" content="https://natemodi.com/logo/parallel-letters/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four Parallel Letters logo variations from Logo Lab.">
+<meta property="og:url" content="https://natemodi.com/logo/parallel-letters/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Parallel Letters — Logo Lab">
+<meta name="twitter:description" content="Letters drawn with vertical strip cuts through a solid fill.">
+<meta name="twitter:image" content="https://natemodi.com/logo/parallel-letters/og-image.png">
+<meta name="twitter:image:alt" content="Four Parallel Letters logo variations from Logo Lab.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/shared/tools-shared.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aldrich&family=Audiowide&family=Baumans&family=Black+Ops+One&family=Electrolize&family=Exo+2:wght@100..900&family=Michroma&family=Orbitron:wght@400..900&family=Rajdhani:wght@300..700&family=Russo+One&family=Share+Tech&display=swap" rel="stylesheet">
+<style>
+  /* Tool-specific overrides only */
+  .char-input {
+    font-size: 1.5rem !important;
+    text-align: center;
+    font-weight: 700;
+    padding: 4px 10px !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="tool-sidebar">
+  <div class="tool-header">
+    <h1 class="tool-header__title">Parallel Letters</h1>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Character</div>
+    <input type="text" id="char" value="G" maxlength="2" class="char-input">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Typography</div>
+    <label>Font</label>
+    <select id="font"></select>
+    <label>Weight</label>
+    <select id="weight">
+      <option value="100">Thin</option>
+      <option value="300">Light</option>
+      <option value="400">Regular</option>
+      <option value="700">Bold</option>
+      <option value="900" selected>Black</option>
+    </select>
+    <label>Corners</label>
+    <select id="join">
+      <option value="round" selected>Round</option>
+      <option value="miter">Sharp</option>
+      <option value="bevel">Bevel</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Lines</div>
+    <label>Count <span class="control-val" id="numLinesVal">5</span></label>
+    <input type="range" id="numLines" min="1" max="40" value="5">
+    <label>Thickness <span class="control-val" id="thicknessVal">2</span></label>
+    <input type="range" id="thickness" min="0.5" max="10" step="0.5" value="2">
+    <label>Gap <span class="control-val" id="gapVal">6</span></label>
+    <input type="range" id="gap" min="1" max="40" step="0.5" value="6">
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Color</div>
+    <label>Background</label>
+    <div class="color-row">
+      <input type="color" id="bgColor" value="#e63946">
+      <span class="color-hex" id="bgColorVal">#e63946</span>
+    </div>
+    <label>Lines</label>
+    <div class="color-row">
+      <input type="color" id="lineColor" value="#ffffff">
+      <span class="color-hex" id="lineColorVal">#ffffff</span>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Canvas</div>
+    <label>Size <span class="control-val" id="sizeVal">800</span></label>
+    <input type="range" id="size" min="400" max="2400" step="100" value="800">
+  </div>
+
+  <div class="control-group">
+    <label>Presets</label>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="control-group">
+    <button class="btn btn-primary btn-full btn-export" id="openExport">Export</button>
+  </div>
+</div>
+
+<div class="tool-canvas tool-canvas--centered">
+  <canvas id="canvas" width="800" height="800"></canvas>
+</div>
+
+<script src="/shared/tools-embed.js"></script>
+<script src="/shared/schema-helpers.js"></script>
+<script src="/shared/rng.js"></script>
+<script src="/shared/permalink.js"></script>
+<script src="/shared/tools-export.js"></script>
+<script src="/shared/tools-registry.js"></script>
+<script src="/shared/font-detect.js"></script>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// DOM refs
+const charInput     = document.getElementById('char');
+const fontSelect    = document.getElementById('font');
+const weightSelect  = document.getElementById('weight');
+const joinSelect    = document.getElementById('join');
+const numLinesEl    = document.getElementById('numLines');
+const thicknessEl   = document.getElementById('thickness');
+const gapEl         = document.getElementById('gap');
+const sizeEl        = document.getElementById('size');
+const bgColorEl     = document.getElementById('bgColor');
+const lineColorEl   = document.getElementById('lineColor');
+
+const allInputs = [charInput, fontSelect, weightSelect, joinSelect,
+                   numLinesEl, thicknessEl, gapEl, sizeEl, bgColorEl, lineColorEl];
+
+// Display values next to sliders
+function updateLabels() {
+  document.getElementById('numLinesVal').textContent = numLinesEl.value;
+  document.getElementById('thicknessVal').textContent = thicknessEl.value;
+  document.getElementById('gapVal').textContent = gapEl.value;
+  document.getElementById('sizeVal').textContent = sizeEl.value;
+  document.getElementById('bgColorVal').textContent = bgColorEl.value;
+  document.getElementById('lineColorVal').textContent = lineColorEl.value;
+}
+
+// ─── Layout computation (shared by canvas + SVG) ───
+function computeLayout(char, font, weight, numLines, lineThickness, gapSize, canvasSize) {
+  const step = lineThickness + gapSize;
+  const totalExtent = numLines > 0 ? (numLines - 1) * step + lineThickness : 0;
+  const padding = totalExtent + canvasSize * 0.05;
+
+  // Measure at a reference size
+  const ref = 500;
+  ctx.font = `${weight} ${ref}px "${font}"`;
+  ctx.textBaseline = 'alphabetic';
+  const m = ctx.measureText(char);
+
+  let textW, textH, bbLeft, bbAscent;
+  if (m.actualBoundingBoxLeft !== undefined) {
+    bbLeft    = m.actualBoundingBoxLeft;
+    bbAscent  = m.actualBoundingBoxAscent;
+    textW     = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+    textH     = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  } else {
+    bbLeft   = 0;
+    bbAscent = ref * 0.75;
+    textW    = m.width;
+    textH    = ref * 0.8;
+  }
+
+  if (textW < 1 || textH < 1) return null;
+
+  const avail = canvasSize - padding * 2;
+  const scale = Math.min(avail / textW, avail / textH);
+  const fontSize = ref * scale;
+
+  // Re-measure at actual font size
+  ctx.font = `${weight} ${fontSize}px "${font}"`;
+  const fm = ctx.measureText(char);
+  let fW, fH, fLeft, fAscent;
+  if (fm.actualBoundingBoxLeft !== undefined) {
+    fLeft   = fm.actualBoundingBoxLeft;
+    fAscent = fm.actualBoundingBoxAscent;
+    fW      = fm.actualBoundingBoxLeft + fm.actualBoundingBoxRight;
+    fH      = fm.actualBoundingBoxAscent + fm.actualBoundingBoxDescent;
+  } else {
+    fLeft   = 0;
+    fAscent = fontSize * 0.75;
+    fW      = fm.width;
+    fH      = fontSize * 0.8;
+  }
+
+  const drawX = (canvasSize - fW) / 2 + fLeft;
+  const drawY = (canvasSize - fH) / 2 + fAscent;
+
+  return { fontSize, drawX, drawY };
+}
+
+// ─── Render to arbitrary context (used by both display + export) ───
+function renderToCtx(targetCtx, size, opts = {}) {
+  const char          = charInput.value || 'G';
+  const font          = fontSelect.value;
+  const weight        = weightSelect.value;
+  const numLines      = parseInt(numLinesEl.value);
+  const lineThickness = parseFloat(thicknessEl.value);
+  const gapSize       = parseFloat(gapEl.value);
+  const bgColor       = bgColorEl.value;
+  const lineColor     = lineColorEl.value;
+  const joinStyle     = joinSelect.value;
+
+  if (!opts.transparent) {
+    targetCtx.fillStyle = bgColor;
+    targetCtx.fillRect(0, 0, size, size);
+  }
+
+  if (!char.trim()) return;
+
+  const layout = computeLayout(char, font, weight, numLines, lineThickness, gapSize, size);
+  if (!layout) return;
+
+  const { fontSize, drawX, drawY } = layout;
+  const step = lineThickness + gapSize;
+
+  targetCtx.font         = `${weight} ${fontSize}px "${font}"`;
+  targetCtx.textBaseline = 'alphabetic';
+  targetCtx.lineJoin     = joinStyle;
+  targetCtx.lineCap      = joinStyle === 'round' ? 'round' : 'butt';
+  if (joinStyle === 'miter') targetCtx.miterLimit = 20;
+
+  // Draw rings from outermost to innermost
+  for (let i = numLines - 1; i >= 0; i--) {
+    // Stroke with line color
+    targetCtx.lineWidth   = 2 * (i * step + lineThickness);
+    targetCtx.strokeStyle = lineColor;
+    targetCtx.strokeText(char, drawX, drawY);
+
+    // Erase inner portion with background
+    const eraseW = 2 * i * step;
+    if (eraseW > 0) {
+      targetCtx.lineWidth   = eraseW;
+      targetCtx.strokeStyle = bgColor;
+      targetCtx.strokeText(char, drawX, drawY);
+    }
+  }
+
+  // Fill interior with background (hollow letter)
+  targetCtx.fillStyle = bgColor;
+  targetCtx.fillText(char, drawX, drawY);
+}
+
+// ─── Main render (to display canvas) ───
+function render() {
+  const size = parseInt(sizeEl.value);
+
+  // HiDPI: scale canvas backing store for sharp rendering
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = size * dpr;
+  canvas.height = size * dpr;
+  const wrap = document.querySelector('.tool-canvas');
+  const maxD = Math.min(wrap.clientWidth, wrap.clientHeight) * 0.9;
+  canvas.style.width  = maxD + 'px';
+  canvas.style.height = maxD + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  renderToCtx(ctx, size);
+}
+
+// ─── Generate SVG string ───
+function escapeXml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function generateSVG() {
+  const char          = charInput.value || 'G';
+  const font          = fontSelect.value;
+  const weight        = weightSelect.value;
+  const numLines      = parseInt(numLinesEl.value);
+  const lineThickness = parseFloat(thicknessEl.value);
+  const gapSize       = parseFloat(gapEl.value);
+  const bgColor       = bgColorEl.value;
+  const lineColor     = lineColorEl.value;
+  const size          = parseInt(sizeEl.value);
+  const joinStyle     = joinSelect.value;
+  const step          = lineThickness + gapSize;
+
+  const layout = computeLayout(char, font, weight, numLines, lineThickness, gapSize, size);
+  if (!layout) return '';
+  const { fontSize, drawX, drawY } = layout;
+
+  const fontUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@${weight}&amp;display=swap`;
+  const cap = joinStyle === 'round' ? 'round' : 'butt';
+  const escaped = escapeXml(char);
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">\n`;
+  svg += `<defs><style>@import url('${fontUrl}');</style></defs>\n`;
+  svg += `<rect width="${size}" height="${size}" fill="${bgColor}"/>\n`;
+
+  const textAttr = `x="${drawX.toFixed(2)}" y="${drawY.toFixed(2)}" font-family="'${font}'" font-weight="${weight}" font-size="${fontSize.toFixed(2)}px"`;
+
+  for (let i = numLines - 1; i >= 0; i--) {
+    const sw = 2 * (i * step + lineThickness);
+    svg += `<text ${textAttr} fill="none" stroke="${lineColor}" stroke-width="${sw.toFixed(2)}" stroke-linejoin="${joinStyle}" stroke-linecap="${cap}">${escaped}</text>\n`;
+
+    const eraseW = 2 * i * step;
+    if (eraseW > 0) {
+      svg += `<text ${textAttr} fill="none" stroke="${bgColor}" stroke-width="${eraseW.toFixed(2)}" stroke-linejoin="${joinStyle}" stroke-linecap="${cap}">${escaped}</text>\n`;
+    }
+  }
+
+  svg += `<text ${textAttr} fill="${bgColor}" stroke="none">${escaped}</text>\n`;
+  svg += `</svg>`;
+
+  return svg;
+}
+
+// ─── Permalink ───
+const {
+  INT_RANGE, FLOAT_RANGE, COLOR, ENUM, TEXT,
+  WEIGHTED_INT_RANGE, WEIGHTED_FLOAT_RANGE, ENUM_WEIGHTED,
+} = window.LogoSchema;
+/* Variants: g is strongly BIMODAL — either tight (1, 2) or wide (23, 24)
+   with no middle. Display fonts dominate. t is always near 10. */
+const pschema = {
+  ch: TEXT({ charset: /^.{1,2}$/u, maxLen: 2, def: 'G' }),
+  f:  ENUM_WEIGHTED([
+    ['Arial Black', 4], ['Impact', 3], ['Audiowide', 3], ['Russo One', 3],
+    ['Orbitron', 3], ['Black Ops One', 2], ['Exo 2', 1], ['Rajdhani', 1],
+    ['Michroma', 1], ['Baumans', 1], ['Georgia', 1],
+    ['Share Tech', 0.5], ['Aldrich', 0.5], ['Electrolize', 0.5], ['Courier New', 0.2],
+  ], 'Orbitron'),
+  fw: ENUM_WEIGHTED([['900', 5], ['700', 2], ['400', 1], ['300', 0.3], ['100', 0.1]], '900'),
+  jo: ENUM_WEIGHTED([['miter', 4], ['round', 2], ['bevel', 1]], 'round'),
+  n:  WEIGHTED_INT_RANGE(1, 40, 5, { rmin: 3, rmax: 12 }),
+  t:  WEIGHTED_FLOAT_RANGE(0.5, 10, 2, 1, { rmin: 6, rmax: 10, pow: 0.6 }),
+  /* g — bimodal: tight (1-3) or loose (20-28), skipping the muddy middle. */
+  g:  {
+    ...FLOAT_RANGE(1, 40, 6, 1),
+    randomize(rng) {
+      return rng() < 0.5
+        ? Math.round((1 + rng() * 2.5) * 10) / 10
+        : Math.round((20 + rng() * 8) * 10) / 10;
+    },
+  },
+  sz: WEIGHTED_INT_RANGE(400, 2400, 800, { rmin: 400, rmax: 1200 }),
+  bg: COLOR('#e63946'),
+  fg: COLOR('#ffffff'),
+};
+function getPermalinkState() {
+  return {
+    ch: charInput.value || 'G', f: fontSelect.value, fw: weightSelect.value,
+    jo: joinSelect.value, n: +numLinesEl.value, t: +thicknessEl.value,
+    g: +gapEl.value, sz: +sizeEl.value, bg: bgColorEl.value, fg: lineColorEl.value,
+  };
+}
+function applyPermalinkState(s) {
+  charInput.value = s.ch; fontSelect.value = s.f; weightSelect.value = s.fw;
+  joinSelect.value = s.jo; numLinesEl.value = s.n; thicknessEl.value = s.t;
+  gapEl.value = s.g; sizeEl.value = s.sz; bgColorEl.value = s.bg; lineColorEl.value = s.fg;
+  updateLabels();
+  render();
+}
+const pm = new window.PermalinkManager({
+  toolName: 'parallel-letters',
+  schema: pschema, getState: getPermalinkState, applyState: applyPermalinkState,
+});
+
+// ─── ToolExporter integration ───
+new ToolExporter({
+  toolName: 'parallel-letters',
+  getCanvas: () => canvas,
+  getSVG: () => generateSVG(),
+  renderToCanvas: (exportCtx, w, h, { transparent }) => {
+    renderToCtx(exportCtx, w, { transparent });
+  },
+  getBackgroundColor: () => bgColorEl.value,
+  baseWidth: parseInt(sizeEl.value),
+  baseHeight: parseInt(sizeEl.value),
+  getPermalink: () => pm.getPermalink(),
+  flushPermalink: () => pm.flush(),
+});
+
+// ─── Event listeners ───
+allInputs.forEach(el => {
+  el.addEventListener('input', () => { updateLabels(); render(); pm.update(); });
+});
+
+window.addEventListener('resize', render);
+[fontSelect, weightSelect, joinSelect].forEach(el => {
+  el.addEventListener('change', () => pm.update());
+});
+
+charInput.addEventListener('focus', () => charInput.select());
+charInput.addEventListener('input', () => {
+  // Keep only last character typed (allow replacing)
+  if (charInput.value.length > 1) {
+    charInput.value = charInput.value.slice(-1);
+  }
+});
+
+// ─── Init ───
+const WEB_FONT_CANDIDATES = ['Orbitron','Audiowide','Russo One','Exo 2','Black Ops One','Rajdhani','Share Tech','Baumans','Electrolize','Michroma','Aldrich'];
+const SYSTEM_FONT_CANDIDATES = ['Arial Black','Impact','Georgia','Courier New'];
+const FONT_WEIGHTS = ['100', '300', '400', '700', '900'];
+updateLabels();
+Promise.all([
+  window.FontDetect.loadFonts(WEB_FONT_CANDIDATES, FONT_WEIGHTS),
+  window.FontDetect.detectAvailableFonts(SYSTEM_FONT_CANDIDATES, FONT_WEIGHTS),
+]).then(([, availableSystem]) => {
+  const fonts = WEB_FONT_CANDIDATES.concat(availableSystem);
+  fontSelect.innerHTML = fonts
+    .map(f => `<option value="${f}">${f}</option>`)
+    .join('');
+  fontSelect.value = fonts.includes(pschema.f.default) ? pschema.f.default : fonts[0];
+  render();
+  pm.decode();
+  pm.setupPresets();
+  if (!fonts.includes(fontSelect.value)) {
+    fontSelect.value = fonts[0];
+    render();
+    pm.update();
+  }
+});
+</script>
+<script src="/shared/tools-nav.js"></script>
+</body>
+</html>
