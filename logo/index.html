@@ -151,10 +151,16 @@
     outline-offset: 3px;
     border-radius: 4px;
   }
-  .aside-source svg {
-    width: 13px;
-    height: 13px;
+  .aside-source__arrow {
+    color: var(--fg-faded);
+    font-size: 12px;
+    line-height: 1;
     flex-shrink: 0;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .aside-source:hover .aside-source__arrow {
+    color: var(--fg);
+    transform: translate(1px, -1px);
   }
 
   aside ul {
@@ -832,10 +838,7 @@
     </h1>
     <a class="aside-source" href="https://github.com/nmemodi/logo-lab" target="_blank" rel="noopener noreferrer" aria-label="Fork Logo Lab on GitHub">
       <span>Github</span>
-      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3 9L9 3"/>
-        <path d="M4.5 3H9V7.5"/>
-      </svg>
+      <span class="aside-source__arrow" aria-hidden="true">↗</span>
     </a>
     <ul id="toc"></ul>
     <a class="aside-home" href="/">
@@ -913,7 +916,7 @@
 
               <p>Whether for a side project or serious venture, Logo Lab helps quickly generate logo ideas that feel considered and distinctive, based on systems that already know how to hold together.</p>
 
-              <p>The tools start from specific modernist frameworks (roughly 1950s–70s), borrowed from particular designers or studios, so each output begins inside a coherent visual language instead of a blank canvas.</p>
+              <p>The tools start from specific modernist frameworks (roughly 1950s–70s), borrowed from particular designers or studios, mostly for obscure or long-lost ventures.</p>
 
               <p><span class="intro-arrow" aria-hidden="true">↳</span>Every tool turns the underlying concept into accessible parameters and curated presets.</p>
 
